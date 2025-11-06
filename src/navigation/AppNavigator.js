@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -97,9 +98,9 @@ function MainTabs() {
  */
 function TabIcon({ emoji, color }) {
   return (
-    <span style={{ fontSize: 24, opacity: color === '#0f3460' ? 1 : 0.5 }}>
+    <Text style={{ fontSize: 24, opacity: color === '#0f3460' ? 1 : 0.5 }}>
       {emoji}
-    </span>
+    </Text>
   );
 }
 
