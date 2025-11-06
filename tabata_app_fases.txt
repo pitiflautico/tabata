@@ -1,0 +1,118 @@
+FASE 1 - CONCEPTO GENERAL DEL PROYECTO
+-------------------------------------
+El objetivo es desarrollar una aplicación de entrenamientos tipo Tabata, donde el sistema pueda organizar ejercicios de forma equilibrada y personalizada sin depender de una IA compleja, sino con un algoritmo o modelo ligero. 
+La app debe ser capaz de generar bloques de entrenamiento adaptados al usuario, combinando ejercicios equilibradamente según intensidad, grupo muscular y tipo de movimiento.
+
+El usuario desea que la IA sirva principalmente para generar el catálogo base de ejercicios con sus descripciones y atributos, y luego un algoritmo interno organizará las rutinas.
+
+Público objetivo: personas no profesionales que quieren entrenar de manera eficiente en casa o con pocos recursos (peso corporal, banco, pesas ligeras, etc.).
+
+-------------------------------------
+FASE 2 - CATÁLOGO DE EJERCICIOS
+-------------------------------------
+El catálogo inicial incluirá una docena de ejercicios de tren inferior y superior, con posibilidad de ampliarse posteriormente.
+
+EJEMPLOS DE EJERCICIOS BÁSICOS (Tren inferior):
+1. Sentadillas – grupo muscular: piernas, glúteos – índice de cardio: 2-3
+2. Zancadas (lunges) – grupo muscular: piernas – índice de cardio: 3
+3. Elevaciones de talones – grupo muscular: gemelos – índice de cardio: 2
+4. Puente de glúteos – grupo muscular: glúteos – índice de cardio: 2
+5. Step-ups – grupo muscular: piernas – índice de cardio: 4
+6. Sentadilla búlgara – grupo muscular: piernas/glúteos – índice de cardio: 3
+7. Peso muerto a una pierna – grupo muscular: femorales/glúteos – índice de cardio: 3
+8. Sentadilla sumo – grupo muscular: aductores – índice de cardio: 3
+9. Saltos al banco – grupo muscular: piernas – índice de cardio: 5
+10. Patada de glúteo – grupo muscular: glúteos – índice de cardio: 2
+11. Desplazamiento lateral – grupo muscular: piernas – índice de cardio: 3
+12. Elevación de cadera a una pierna – grupo muscular: glúteos – índice de cardio: 3
+
+EJERCICIOS COMBINADOS (Doble trabajo: tren superior + inferior):
+1. Sentadilla + press de hombros – índice cardio: 4
+2. Zancada + curl de bíceps – índice cardio: 3
+3. Peso muerto + remo – índice cardio: 3
+4. Burpee con flexión – índice cardio: 5
+5. Thruster – índice cardio: 5
+
+-------------------------------------
+FASE 3 - REPRESENTACIÓN VISUAL Y FRAMES
+-------------------------------------
+Cada ejercicio se representará mediante frames o etapas visuales (inicio, medio, fin). 
+Ejemplo: una sentadilla se compone de tres frames:
+- Frame 1: posición inicial de pie
+- Frame 2: bajada controlada
+- Frame 3: subida y retorno a posición inicial
+
+Los ejercicios combinados pueden tener más frames según complejidad (por ejemplo, una flexión + peso muerto puede requerir 4-5 frames).
+
+Opcional: uso de avatares virtuales o modelos 3D que muestren los movimientos y posturas correctas, adaptables a distintos ángulos o niveles de intensidad. 
+Cada frame puede durar entre 1 y 3 segundos según la fluidez del movimiento.
+
+-------------------------------------
+FASE 4 - ALGORITMO DE ORGANIZACIÓN DE BLOQUES
+-------------------------------------
+El sistema debe distribuir los ejercicios de manera equilibrada según tres parámetros clave:
+1. Grupo muscular trabajado.
+2. Tipo de ejercicio (peso corporal, kettlebell, banco, etc.).
+3. Índice de cardio o intensidad.
+
+Ratio Tabata clásico: 2:1 (por ejemplo, 40 segundos de trabajo / 20 segundos de descanso).
+
+Ejemplo de bloque:
+- 4 ejercicios x (40s trabajo + 20s descanso) = 4 minutos por bloque.
+- 3 a 4 bloques → 12-16 minutos efectivos.
+- Repetido dos veces → entrenamiento total de 24-32 minutos.
+
+Duración total recomendada: entre 20 y 30 minutos para usuarios intermedios.
+
+-------------------------------------
+FASE 5 - IA GENERATIVA PARA EL CATÁLOGO
+-------------------------------------
+La IA se usa para generar el repertorio inicial de ejercicios. Cada entrada debe incluir:
+- Nombre del ejercicio
+- Descripción detallada
+- Grupo muscular
+- Nivel de intensidad
+- Índice de cardio
+- Equipamiento necesario
+- Posibles variaciones
+- Frames de movimiento (inicio, medio, fin)
+
+El modelo puede generar ejercicios nuevos o variaciones adaptadas a cada usuario (por ejemplo, menor impacto, mayor carga, etc.).
+
+-------------------------------------
+FASE 6 - ENTRENAMIENTO Y APRENDIZAJE AUTOMÁTICO
+-------------------------------------
+Objetivo: que la app aprenda a combinar ejercicios según ejemplos proporcionados por el creador.
+
+Método: aprendizaje supervisado.
+- Se le entregan ejemplos de combinaciones bien equilibradas.
+- El modelo aprende las reglas (por ejemplo, no repetir grupos musculares seguidos, alternar intensidades, etc.).
+- Luego genera combinaciones nuevas automáticamente.
+
+Se puede usar TensorFlow.js o Brain.js para modelos ligeros en el cliente (React Native), o un modelo en la nube (OpenAI API u otros).
+
+Cuando se añadan nuevos ejercicios al catálogo, el modelo puede reentrenarse con los datos ampliados para mantenerse actualizado.
+
+-------------------------------------
+FASE 7 - INTEGRACIÓN EN REACT NATIVE
+-------------------------------------
+La app mostrará:
+- Bloques de entrenamiento generados.
+- Representación visual de cada ejercicio (frames o avatar).
+- Indicaciones técnicas (texto o voz).
+- Progresión del usuario (nivel, intensidad, tiempo total).
+
+Estructura técnica sugerida:
+- Catálogo de ejercicios: base local o en la nube.
+- Módulo de IA: modelo en TensorFlow.js o conexión a API externa.
+- Controlador de sesiones: lógica de ratio Tabata y temporización.
+- Sistema de progresión: el usuario indica su esfuerzo percibido; si se mantiene bajo varias sesiones, la app sugiere incrementar dificultad.
+
+Opcional:
+- Animaciones o GIFs integrados.
+- Estadísticas de rendimiento.
+- Modo sin conexión con almacenamiento local de rutinas.
+
+-------------------------------------
+FIN DEL DOCUMENTO
+-------------------------------------
