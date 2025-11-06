@@ -1,31 +1,68 @@
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View, Text, ActivityIndicator } from 'react-native';
+import AppNavigator from './src/navigation/AppNavigator';
+import ProgressService from './src/services/ProgressService';
 
 export default function App() {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    initializeApp();
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      // Inicializar ProgressService con datos de AsyncStorage
+      await ProgressService.initialize();
+
+      // Pequeño delay para splash screen
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setIsReady(true);
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      setIsReady(true); // Continuar aunque haya error
+    }
+  };
+
+  if (!isReady) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingTitle}>Tabata Training</Text>
+        <ActivityIndicator size="large" color="#0f3460" style={styles.loader} />
+        <Text style={styles.loadingText}>Cargando...</Text>
+        <StatusBar style="light" />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tabata Training App</Text>
-      <Text style={styles.subtitle}>Entrena inteligentemente</Text>
+    <>
+      <AppNavigator />
       <StatusBar style="auto" />
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
     backgroundColor: '#1a1a2e',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
+  loadingTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#eaeaea',
-    marginBottom: 10,
+    marginBottom: 30,
   },
-  subtitle: {
-    fontSize: 18,
+  loader: {
+    marginVertical: 20,
+  },
+  loadingText: {
+    fontSize: 16,
     color: '#0f3460',
   },
 });

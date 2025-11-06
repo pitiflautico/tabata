@@ -1,4 +1,5 @@
 import { UserProgress } from '../models/UserProgress';
+import StorageService from './StorageService';
 
 /**
  * Servicio de progresión del usuario
@@ -8,6 +9,23 @@ import { UserProgress } from '../models/UserProgress';
 class ProgressService {
   constructor() {
     this.currentProgress = null;
+    this.initialized = false;
+  }
+
+  /**
+   * Inicializa el servicio cargando datos desde AsyncStorage
+   */
+  async initialize() {
+    if (this.initialized) return;
+
+    const savedProgress = await StorageService.loadUserProgress();
+    if (savedProgress) {
+      this.currentProgress = new UserProgress(savedProgress);
+    } else {
+      this.initializeProgress('default-user');
+    }
+
+    this.initialized = true;
   }
 
   /**
@@ -217,29 +235,34 @@ class ProgressService {
   }
 
   /**
-   * Guarda el progreso (placeholder - implementar con AsyncStorage)
+   * Guarda el progreso en AsyncStorage
    */
-  saveProgress() {
-    // En una app real, esto guardaría en AsyncStorage o base de datos
-    console.log('Progreso guardado:', this.currentProgress);
-    return true;
+  async saveProgress() {
+    if (!this.currentProgress) return false;
+
+    const success = await StorageService.saveUserProgress(this.currentProgress);
+    return success;
   }
 
   /**
-   * Carga el progreso (placeholder - implementar con AsyncStorage)
+   * Carga el progreso desde AsyncStorage
    */
-  loadProgress(userId) {
-    // En una app real, esto cargaría desde AsyncStorage o base de datos
-    console.log('Cargando progreso para usuario:', userId);
+  async loadProgress(userId) {
+    const savedProgress = await StorageService.loadUserProgress();
+    if (savedProgress) {
+      this.currentProgress = new UserProgress(savedProgress);
+      return this.currentProgress;
+    }
     return this.initializeProgress(userId);
   }
 
   /**
    * Resetea el progreso del usuario
    */
-  resetProgress(userId) {
+  async resetProgress(userId) {
+    await StorageService.clearAllData();
     this.currentProgress = this.initializeProgress(userId);
-    this.saveProgress();
+    await this.saveProgress();
     return this.currentProgress;
   }
 }
