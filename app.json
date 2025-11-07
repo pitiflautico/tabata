@@ -10,13 +10,24 @@
       "backgroundColor": "#1a1a2e"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.danielperez.tabata",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#1a1a2e"
       }
     },
-    "web": {}
+    "web": {},
+    "extra": {
+      "eas": {
+        "projectId": "719c72be-4655-470b-838c-cbd696e28992"
+      }
+    },
+    "owner": "pitiflautico"
   }
 }
