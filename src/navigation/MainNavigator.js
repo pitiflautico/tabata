@@ -12,6 +12,7 @@ import NewSettingsScreen from '../screens/NewSettingsScreen';
 import NewExerciseCatalogScreen from '../screens/NewExerciseCatalogScreen';
 import NewExerciseDetailScreen from '../screens/NewExerciseDetailScreen';
 import NewWorkoutGeneratorScreen from '../screens/NewWorkoutGeneratorScreen';
+import WorkoutSessionScreen from '../screens/WorkoutSessionScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -32,6 +33,7 @@ const HomeStack = () => {
       <Stack.Screen name="Exercises" component={NewExerciseCatalogScreen} />
       <Stack.Screen name="ExerciseDetail" component={NewExerciseDetailScreen} />
       <Stack.Screen name="WorkoutGenerator" component={NewWorkoutGeneratorScreen} />
+      <Stack.Screen name="WorkoutSession" component={WorkoutSessionScreen} />
     </Stack.Navigator>
   );
 };

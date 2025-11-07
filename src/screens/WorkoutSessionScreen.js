@@ -1,573 +1,648 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  StatusBar,
+  Platform,
+  Vibration,
   Alert,
-  Dimensions,
-  Modal
+  TouchableOpacity,
 } from 'react-native';
-
-const { width, height } = Dimensions.get('window');
+import { Ionicons } from '@expo/vector-icons';
+import { AppTheme, CommonStyles } from '../theme/AppTheme';
+import { AppContext } from '../context/AppContext';
+import CircularProgress from '../components/CircularProgress';
+import CircularButton from '../components/CircularButton';
+import Button from '../components/Button';
 
 /**
- * Pantalla de sesión de entrenamiento en vivo
+ * Estados de la sesión
+ */
+const SessionPhase = {
+  GET_READY: 'GET_READY', // Preparación inicial (10s)
+  PREPARE: 'PREPARE', // Preparación antes de cada ejercicio (5s)
+  WORK: 'WORK', // Trabajo
+  REST: 'REST', // Descanso entre ejercicios
+  BLOCK_REST: 'BLOCK_REST', // Descanso entre bloques (30s)
+  COMPLETE: 'COMPLETE', // Sesión completada
+};
+
+/**
+ * Pantalla de sesión de entrenamiento generado
+ * Ejecuta workouts generados por el AI Coach
  */
 const WorkoutSessionScreen = ({ route, navigation }) => {
   const { workout } = route.params;
+  const { addWorkout } = useContext(AppContext);
 
-  // Estados
+  // Estado de la sesión
+  const [phase, setPhase] = useState(SessionPhase.GET_READY);
+  const [timeLeft, setTimeLeft] = useState(10); // Tiempo de preparación inicial
+  const [isPaused, setIsPaused] = useState(false);
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [isWorkPhase, setIsWorkPhase] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isFinished, setIsFinished] = useState(false);
-  const [totalTime, setTotalTime] = useState(0);
-  const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
+  const [startTime, setStartTime] = useState(Date.now());
 
-  const intervalRef = useRef(null);
-  const totalIntervalRef = useRef(null);
+  const timerRef = useRef(null);
 
   // Obtener datos actuales
   const currentBlock = workout.blocks[currentBlockIndex];
   const currentExercise = currentBlock?.exercises[currentExerciseIndex];
-  const ratio = currentBlock?.ratio || { work: 40, rest: 20 };
+  const ratio = currentBlock?.ratio;
 
-  // Inicializar timer
+  // Calcular progreso total
+  const getTotalExercisesDone = () => {
+    let count = 0;
+    for (let i = 0; i < currentBlockIndex; i++) {
+      count += workout.blocks[i].exercises.length;
+    }
+    count += currentExerciseIndex;
+    if (phase === SessionPhase.WORK || phase === SessionPhase.REST) {
+      count += 1;
+    }
+    return count;
+  };
+
+  const getTotalExercisesCount = () => {
+    return workout.blocks.reduce((sum, block) => sum + block.exercises.length, 0);
+  };
+
+  const progressPercent = (getTotalExercisesDone() / getTotalExercisesCount()) * 100;
+
+  // Obtener color según fase
+  const getPhaseColor = () => {
+    switch (phase) {
+      case SessionPhase.GET_READY:
+        return AppTheme.colors.warning;
+      case SessionPhase.PREPARE:
+        return AppTheme.colors.warning;
+      case SessionPhase.WORK:
+        return AppTheme.colors.primary;
+      case SessionPhase.REST:
+        return AppTheme.colors.secondary;
+      case SessionPhase.BLOCK_REST:
+        return AppTheme.colors.accent1;
+      case SessionPhase.COMPLETE:
+        return AppTheme.colors.success;
+      default:
+        return AppTheme.colors.primary;
+    }
+  };
+
+  // Obtener texto de fase
+  const getPhaseText = () => {
+    switch (phase) {
+      case SessionPhase.GET_READY:
+        return '¡Prepárate!';
+      case SessionPhase.PREPARE:
+        return 'A continuación';
+      case SessionPhase.WORK:
+        return '¡TRABAJO!';
+      case SessionPhase.REST:
+        return 'Descanso';
+      case SessionPhase.BLOCK_REST:
+        return 'Descanso entre bloques';
+      case SessionPhase.COMPLETE:
+        return '¡Completado!';
+      default:
+        return '';
+    }
+  };
+
+  // Manejo del timer
   useEffect(() => {
-    setTimeLeft(ratio.work);
+    if (isPaused || phase === SessionPhase.COMPLETE) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      return;
+    }
 
-    // Timer para tiempo total
-    totalIntervalRef.current = setInterval(() => {
-      setTotalTime(prev => prev + 1);
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          handlePhaseComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => {
-      clearInterval(intervalRef.current);
-      clearInterval(totalIntervalRef.current);
-    };
-  }, []);
-
-  // Timer principal
-  useEffect(() => {
-    if (!isPaused && !isFinished) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            // Cambiar de fase o ejercicio
-            handlePhaseChange();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(intervalRef.current);
-    } else {
-      clearInterval(intervalRef.current);
-    }
-  }, [isPaused, isFinished, isWorkPhase, currentExerciseIndex, currentBlockIndex]);
-
-  // Cambio automático de frames durante ejercicio
-  useEffect(() => {
-    if (isWorkPhase && currentExercise?.frames.length > 0) {
-      const frameInterval = setInterval(() => {
-        setCurrentFrameIndex(prev =>
-          (prev + 1) % currentExercise.frames.length
-        );
-      }, 2000); // Cambiar frame cada 2 segundos
-
-      return () => clearInterval(frameInterval);
-    }
-  }, [isWorkPhase, currentExercise]);
-
-  const handlePhaseChange = () => {
-    if (isWorkPhase) {
-      // Fin del trabajo, empezar descanso
-      setIsWorkPhase(false);
-      setTimeLeft(ratio.rest);
-      playSound('rest');
-      setCurrentFrameIndex(0);
-    } else {
-      // Fin del descanso, siguiente ejercicio
-      if (currentExerciseIndex < currentBlock.exercises.length - 1) {
-        // Siguiente ejercicio en el mismo bloque
-        setCurrentExerciseIndex(prev => prev + 1);
-        setIsWorkPhase(true);
-        setTimeLeft(ratio.work);
-        setCurrentFrameIndex(0);
-        playSound('work');
-      } else {
-        // Fin del bloque
-        if (currentBlockIndex < workout.blocks.length - 1) {
-          // Siguiente bloque
-          setCurrentBlockIndex(prev => prev + 1);
-          setCurrentExerciseIndex(0);
-          setIsWorkPhase(true);
-          setTimeLeft(ratio.work);
-          setCurrentFrameIndex(0);
-          playSound('block_complete');
-        } else {
-          // Fin del entrenamiento
-          finishWorkout();
-        }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
+    };
+  }, [phase, isPaused, currentBlockIndex, currentExerciseIndex]);
+
+  // Cuando se completa una fase
+  const handlePhaseComplete = () => {
+    Vibration.vibrate(200);
+
+    if (phase === SessionPhase.GET_READY) {
+      // Iniciar primer ejercicio
+      setPhase(SessionPhase.PREPARE);
+      setTimeLeft(5);
+    } else if (phase === SessionPhase.PREPARE) {
+      // Comenzar trabajo
+      setPhase(SessionPhase.WORK);
+      setTimeLeft(ratio.work);
+    } else if (phase === SessionPhase.WORK) {
+      // Ir a descanso o siguiente ejercicio
+      const isLastExerciseInBlock = currentExerciseIndex >= currentBlock.exercises.length - 1;
+
+      if (isLastExerciseInBlock) {
+        // Último ejercicio del bloque
+        const isLastBlock = currentBlockIndex >= workout.blocks.length - 1;
+
+        if (isLastBlock) {
+          // Sesión completada
+          handleWorkoutComplete();
+        } else {
+          // Descanso entre bloques
+          setPhase(SessionPhase.BLOCK_REST);
+          setTimeLeft(30);
+        }
+      } else {
+        // Descanso normal entre ejercicios
+        setPhase(SessionPhase.REST);
+        setTimeLeft(ratio.rest);
+      }
+    } else if (phase === SessionPhase.REST) {
+      // Siguiente ejercicio
+      setCurrentExerciseIndex(currentExerciseIndex + 1);
+      setPhase(SessionPhase.PREPARE);
+      setTimeLeft(5);
+    } else if (phase === SessionPhase.BLOCK_REST) {
+      // Siguiente bloque
+      setCurrentBlockIndex(currentBlockIndex + 1);
+      setCurrentExerciseIndex(0);
+      setPhase(SessionPhase.PREPARE);
+      setTimeLeft(5);
     }
   };
 
-  const playSound = (type) => {
-    // Placeholder para audio - se implementará con expo-av
-    console.log(`Playing sound: ${type}`);
+  // Completar workout
+  const handleWorkoutComplete = () => {
+    setPhase(SessionPhase.COMPLETE);
+    Vibration.vibrate([0, 200, 100, 200, 100, 400]);
+
+    const duration = Math.floor((Date.now() - startTime) / 1000 / 60);
+    const calories = Math.round(duration * 8.5);
+
+    addWorkout({
+      duration,
+      calories,
+      rounds: workout.blocks.length,
+      cycles: getTotalExercisesCount(),
+    });
   };
 
-  const handlePause = () => {
-    setIsPaused(true);
+  // Pausar/Reanudar
+  const togglePause = () => {
+    setIsPaused(!isPaused);
   };
 
-  const handleResume = () => {
-    setIsPaused(false);
-  };
-
-  const handleSkip = () => {
+  // Saltar ejercicio
+  const skipExercise = () => {
     Alert.alert(
-      'Saltar ejercicio',
-      '¿Estás seguro de que quieres saltar este ejercicio?',
+      'Saltar Ejercicio',
+      '¿Seguro que quieres saltar este ejercicio?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Saltar',
           onPress: () => {
-            setTimeLeft(0);
-            handlePhaseChange();
-          }
-        }
+            handlePhaseComplete();
+          },
+        },
       ]
     );
   };
 
-  const handleQuit = () => {
+  // Abandonar workout
+  const quitWorkout = () => {
     Alert.alert(
-      'Terminar entrenamiento',
-      '¿Estás seguro de que quieres terminar? Tu progreso no se guardará.',
+      'Abandonar Entrenamiento',
+      '¿Seguro que quieres abandonar? El progreso no se guardará.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Terminar',
+          text: 'Abandonar',
           style: 'destructive',
-          onPress: () => navigation.goBack()
-        }
+          onPress: () => navigation.goBack(),
+        },
       ]
     );
   };
 
-  const finishWorkout = () => {
-    setIsFinished(true);
-    clearInterval(intervalRef.current);
-    clearInterval(totalIntervalRef.current);
-    playSound('workout_complete');
-
-    // Aquí se guardaría el progreso
-    setTimeout(() => {
-      navigation.navigate('WorkoutComplete', {
-        workout,
-        totalTime,
-        completedAt: new Date()
-      });
-    }, 2000);
+  // Finalizar y volver
+  const finishAndGoBack = () => {
+    navigation.navigate('HomeMain');
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getPhaseColor = () => {
-    if (isFinished) return '#4CAF50';
-    return isWorkPhase ? '#FF5722' : '#2196F3';
-  };
-
-  const getPhaseLabel = () => {
-    if (isFinished) return '¡COMPLETADO!';
-    return isWorkPhase ? 'TRABAJO' : 'DESCANSO';
-  };
-
-  const getNextExercise = () => {
-    if (isWorkPhase) {
-      return currentExercise;
-    } else {
-      if (currentExerciseIndex < currentBlock.exercises.length - 1) {
-        return currentBlock.exercises[currentExerciseIndex + 1];
-      } else if (currentBlockIndex < workout.blocks.length - 1) {
-        return workout.blocks[currentBlockIndex + 1].exercises[0];
-      }
-      return null;
-    }
-  };
-
-  const calculateProgress = () => {
-    const totalExercises = workout.blocks.reduce((sum, block) =>
-      sum + block.exercises.length, 0
-    );
-    const completedExercises = workout.blocks.slice(0, currentBlockIndex).reduce((sum, block) =>
-      sum + block.exercises.length, 0
-    ) + currentExerciseIndex + (isWorkPhase ? 0 : 1);
-
-    return (completedExercises / totalExercises) * 100;
-  };
-
-  if (!currentExercise) {
+  if (phase === SessionPhase.COMPLETE) {
     return (
-      <View style={styles.container}>
-        <Text>Cargando...</Text>
+      <View style={CommonStyles.container}>
+        <StatusBar barStyle="light-content" />
+
+        <View style={styles.completeContainer}>
+          <View style={styles.completeIcon}>
+            <Ionicons name="checkmark-circle" size={120} color={AppTheme.colors.success} />
+          </View>
+
+          <Text style={styles.completeTitle}>¡Entrenamiento Completado!</Text>
+          <Text style={styles.completeSubtitle}>
+            Excelente trabajo. Has completado tu sesión.
+          </Text>
+
+          <View style={styles.completeSummary}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>
+                {Math.floor((Date.now() - startTime) / 1000 / 60)}
+              </Text>
+              <Text style={styles.summaryLabel}>minutos</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{getTotalExercisesCount()}</Text>
+              <Text style={styles.summaryLabel}>ejercicios</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>
+                {Math.round(Math.floor((Date.now() - startTime) / 1000 / 60) * 8.5)}
+              </Text>
+              <Text style={styles.summaryLabel}>kcal</Text>
+            </View>
+          </View>
+
+          <Button
+            title="Ver Estadísticas"
+            icon="stats-chart"
+            onPress={() => navigation.navigate('Stats')}
+            size="large"
+            style={styles.completeButton}
+          />
+
+          <Button
+            title="Volver al Inicio"
+            icon="home"
+            variant="outline"
+            onPress={finishAndGoBack}
+            size="large"
+            style={styles.completeButton}
+          />
+        </View>
       </View>
     );
   }
 
-  const currentFrame = currentExercise.frames[currentFrameIndex];
-  const nextExercise = getNextExercise();
-
   return (
-    <View style={styles.container}>
-      {/* Header con progreso */}
+    <View style={CommonStyles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.progressBarContainer}>
+        <CircularButton
+          icon="close"
+          size="medium"
+          onPress={quitWorkout}
+        />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Sesión en Progreso</Text>
+          <Text style={styles.headerSubtitle}>
+            Bloque {currentBlockIndex + 1} de {workout.blocks.length}
+          </Text>
+        </View>
+        <CircularButton
+          icon={isPaused ? 'play' : 'pause'}
+          size="medium"
+          onPress={togglePause}
+        />
+      </View>
+
+      {/* Progress Bar */}
+      <View style={styles.progressBarContainer}>
+        <View style={styles.progressBarBg}>
           <View
-            style={[styles.progressBar, { width: `${calculateProgress()}%` }]}
+            style={[
+              styles.progressBarFill,
+              { width: `${progressPercent}%`, backgroundColor: getPhaseColor() },
+            ]}
           />
         </View>
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerText}>
-            Bloque {currentBlockIndex + 1}/{workout.blocks.length}
-          </Text>
-          <Text style={styles.headerText}>
-            Ejercicio {currentExerciseIndex + 1}/{currentBlock.exercises.length}
-          </Text>
-          <Text style={styles.headerText}>
-            Total: {formatTime(totalTime)}
-          </Text>
-        </View>
+        <Text style={styles.progressText}>
+          {getTotalExercisesDone()} / {getTotalExercisesCount()} ejercicios
+        </Text>
       </View>
 
-      {/* Indicador de fase */}
-      <View style={[styles.phaseIndicator, { backgroundColor: getPhaseColor() }]}>
-        <Text style={styles.phaseLabel}>{getPhaseLabel()}</Text>
-      </View>
-
-      {/* Timer principal */}
+      {/* Main Timer */}
       <View style={styles.timerContainer}>
-        <Text style={[styles.timerText, { color: getPhaseColor() }]}>
-          {formatTime(timeLeft)}
-        </Text>
-        {isPaused && (
-          <Text style={styles.pausedLabel}>PAUSADO</Text>
-        )}
-      </View>
-
-      {/* Ejercicio actual */}
-      <View style={styles.exerciseContainer}>
-        <Text style={styles.exerciseName}>
-          {isWorkPhase ? currentExercise.name : 'Descansa'}
+        <Text style={[styles.phaseLabel, { color: getPhaseColor() }]}>
+          {getPhaseText()}
         </Text>
 
-        {isWorkPhase && currentFrame && (
-          <View style={styles.frameContainer}>
-            <View style={styles.framePlaceholder}>
-              <Text style={styles.framePlaceholderEmoji}>🏋️</Text>
-              <Text style={styles.frameTitle}>{currentFrame.title}</Text>
-            </View>
-            <Text style={styles.frameDescription}>
-              {currentFrame.description}
-            </Text>
+        <CircularProgress
+          size={280}
+          strokeWidth={16}
+          progress={
+            phase === SessionPhase.GET_READY
+              ? (timeLeft / 10) * 100
+              : phase === SessionPhase.PREPARE
+              ? (timeLeft / 5) * 100
+              : phase === SessionPhase.WORK
+              ? (timeLeft / ratio.work) * 100
+              : phase === SessionPhase.REST
+              ? (timeLeft / ratio.rest) * 100
+              : phase === SessionPhase.BLOCK_REST
+              ? (timeLeft / 30) * 100
+              : 100
+          }
+          progressColor={getPhaseColor()}
+          backgroundColor={AppTheme.colors.backgroundCard}
+        >
+          <Text style={styles.timerValue}>{timeLeft}</Text>
+          <Text style={styles.timerUnit}>segundos</Text>
+        </CircularProgress>
 
-            {/* Indicadores de frames */}
-            <View style={styles.frameIndicators}>
-              {currentExercise.frames.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.frameIndicator,
-                    index === currentFrameIndex && styles.frameIndicatorActive
-                  ]}
-                />
+        {/* Exercise Info */}
+        {currentExercise && phase !== SessionPhase.GET_READY && (
+          <View style={styles.exerciseInfo}>
+            {phase === SessionPhase.PREPARE && (
+              <Text style={styles.nextLabel}>A continuación:</Text>
+            )}
+            <Text style={styles.exerciseName}>{currentExercise.name}</Text>
+            <View style={styles.exerciseMeta}>
+              {currentExercise.muscleGroups.slice(0, 3).map((mg, index) => (
+                <View key={index} style={styles.muscleChip}>
+                  <Text style={styles.muscleChipText}>{mg}</Text>
+                </View>
               ))}
             </View>
           </View>
         )}
-
-        {!isWorkPhase && (
-          <View style={styles.restContainer}>
-            <Text style={styles.restEmoji}>😌</Text>
-            <Text style={styles.restText}>Respira y prepárate</Text>
-          </View>
-        )}
       </View>
 
-      {/* Próximo ejercicio */}
-      {nextExercise && !isWorkPhase && (
-        <View style={styles.nextExerciseContainer}>
-          <Text style={styles.nextExerciseLabel}>Siguiente:</Text>
-          <Text style={styles.nextExerciseName}>{nextExercise.name}</Text>
-        </View>
-      )}
-
-      {/* Controles */}
+      {/* Controls */}
       <View style={styles.controls}>
-        {!isFinished && (
-          <>
-            <TouchableOpacity
-              style={[styles.controlButton, styles.quitButton]}
-              onPress={handleQuit}
-            >
-              <Text style={styles.controlButtonText}>✕</Text>
-            </TouchableOpacity>
-
-            {!isPaused ? (
-              <TouchableOpacity
-                style={[styles.controlButton, styles.pauseButton]}
-                onPress={handlePause}
-              >
-                <Text style={styles.controlButtonText}>❚❚</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.controlButton, styles.resumeButton]}
-                onPress={handleResume}
-              >
-                <Text style={styles.controlButtonText}>▶</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={[styles.controlButton, styles.skipButton]}
-              onPress={handleSkip}
-            >
-              <Text style={styles.controlButtonText}>⏭</Text>
-            </TouchableOpacity>
-          </>
+        {phase !== SessionPhase.GET_READY && (
+          <TouchableOpacity style={styles.skipButton} onPress={skipExercise}>
+            <Ionicons name="play-skip-forward" size={24} color={AppTheme.colors.textSecondary} />
+            <Text style={styles.skipText}>Saltar</Text>
+          </TouchableOpacity>
         )}
       </View>
 
-      {/* Modal de finalización */}
-      <Modal visible={isFinished} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>¡Entrenamiento Completado!</Text>
-            <Text style={styles.modalEmoji}>🎉</Text>
-            <Text style={styles.modalText}>
-              Tiempo total: {formatTime(totalTime)}
-            </Text>
-          </View>
+      {/* Block Preview */}
+      <View style={styles.blockPreview}>
+        <Text style={styles.blockPreviewTitle}>Ejercicios en este bloque:</Text>
+        <View style={styles.exerciseList}>
+          {currentBlock.exercises.map((ex, index) => (
+            <View
+              key={index}
+              style={[
+                styles.exerciseItem,
+                index === currentExerciseIndex && styles.exerciseItemActive,
+                index < currentExerciseIndex && styles.exerciseItemComplete,
+              ]}
+            >
+              {index < currentExerciseIndex ? (
+                <Ionicons name="checkmark-circle" size={20} color={AppTheme.colors.success} />
+              ) : index === currentExerciseIndex ? (
+                <Ionicons name="radio-button-on" size={20} color={AppTheme.colors.primary} />
+              ) : (
+                <Ionicons name="ellipse-outline" size={20} color={AppTheme.colors.textSecondary} />
+              )}
+              <Text
+                style={[
+                  styles.exerciseItemText,
+                  index === currentExerciseIndex && styles.exerciseItemTextActive,
+                  index < currentExerciseIndex && styles.exerciseItemTextComplete,
+                ]}
+                numberOfLines={1}
+              >
+                {ex.name}
+              </Text>
+            </View>
+          ))}
         </View>
-      </Modal>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-  },
   header: {
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  progressBarContainer: {
-    height: 6,
-    backgroundColor: '#0f3460',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-  },
-  headerInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: AppTheme.layout.screenPadding,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 16 : 50,
+    paddingBottom: AppTheme.spacing.lg,
   },
-  headerText: {
-    color: '#eaeaea',
-    fontSize: 12,
-  },
-  phaseIndicator: {
-    paddingVertical: 16,
+  headerCenter: {
+    flex: 1,
     alignItems: 'center',
   },
-  phaseLabel: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    letterSpacing: 4,
+  headerTitle: {
+    fontSize: AppTheme.typography.fontSize.md,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+  },
+  headerSubtitle: {
+    fontSize: AppTheme.typography.fontSize.xs,
+    color: AppTheme.colors.textSecondary,
+    marginTop: 2,
+  },
+  progressBarContainer: {
+    paddingHorizontal: AppTheme.layout.screenPadding,
+    marginBottom: AppTheme.spacing.xl,
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: AppTheme.colors.backgroundCard,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+    transition: 'width 0.3s ease',
+  },
+  progressText: {
+    fontSize: AppTheme.typography.fontSize.xs,
+    color: AppTheme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: AppTheme.spacing.xs,
   },
   timerContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  timerText: {
-    fontSize: 96,
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
-  },
-  pausedLabel: {
-    color: '#FF9800',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  exerciseContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: AppTheme.spacing.xl,
+  },
+  phaseLabel: {
+    fontSize: AppTheme.typography.fontSize.xl,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    marginBottom: AppTheme.spacing.xl,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+  },
+  timerValue: {
+    fontSize: 72,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+  },
+  timerUnit: {
+    fontSize: AppTheme.typography.fontSize.base,
+    color: AppTheme.colors.textSecondary,
+    marginTop: AppTheme.spacing.xs,
+  },
+  exerciseInfo: {
+    alignItems: 'center',
+    marginTop: AppTheme.spacing.xl,
+    paddingHorizontal: AppTheme.layout.screenPadding,
+  },
+  nextLabel: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
+    marginBottom: AppTheme.spacing.xs,
   },
   exerciseName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#eaeaea',
+    fontSize: AppTheme.typography.fontSize.lg,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: AppTheme.spacing.sm,
   },
-  frameContainer: {
-    alignItems: 'center',
-  },
-  framePlaceholder: {
-    width: width - 80,
-    height: 200,
-    backgroundColor: '#0f3460',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  framePlaceholderEmoji: {
-    fontSize: 80,
-    marginBottom: 8,
-  },
-  frameTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#eaeaea',
-  },
-  frameDescription: {
-    fontSize: 16,
-    color: '#eaeaea',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  frameIndicators: {
+  exerciseMeta: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
+    gap: AppTheme.spacing.xs,
   },
-  frameIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#0f3460',
-    marginHorizontal: 4,
+  muscleChip: {
+    backgroundColor: AppTheme.colors.backgroundCard,
+    paddingHorizontal: AppTheme.spacing.sm,
+    paddingVertical: AppTheme.spacing.xs,
+    borderRadius: AppTheme.borderRadius.sm,
   },
-  frameIndicatorActive: {
-    backgroundColor: '#4CAF50',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  restContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  restEmoji: {
-    fontSize: 80,
-    marginBottom: 16,
-  },
-  restText: {
-    fontSize: 20,
-    color: '#eaeaea',
-    fontStyle: 'italic',
-  },
-  nextExerciseContainer: {
-    backgroundColor: '#0f3460',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  nextExerciseLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
-  },
-  nextExerciseName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#eaeaea',
+  muscleChipText: {
+    fontSize: AppTheme.typography.fontSize.xs,
+    color: AppTheme.colors.textSecondary,
+    textTransform: 'capitalize',
   },
   controls: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-  },
-  controlButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  controlButtonText: {
-    fontSize: 28,
-    color: '#fff',
-  },
-  quitButton: {
-    backgroundColor: '#F44336',
-  },
-  pauseButton: {
-    backgroundColor: '#FF9800',
-  },
-  resumeButton: {
-    backgroundColor: '#4CAF50',
+    paddingVertical: AppTheme.spacing.lg,
   },
   skipButton: {
-    backgroundColor: '#2196F3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: AppTheme.spacing.lg,
+    paddingVertical: AppTheme.spacing.sm,
   },
-  modalOverlay: {
+  skipText: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
+    marginLeft: AppTheme.spacing.xs,
+  },
+  blockPreview: {
+    backgroundColor: AppTheme.colors.backgroundCard,
+    borderTopLeftRadius: AppTheme.borderRadius.xl,
+    borderTopRightRadius: AppTheme.borderRadius.xl,
+    paddingHorizontal: AppTheme.layout.screenPadding,
+    paddingTop: AppTheme.spacing.lg,
+    paddingBottom: AppTheme.spacing.xl,
+  },
+  blockPreviewTitle: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    fontWeight: AppTheme.typography.fontWeight.semiBold,
+    color: AppTheme.colors.textSecondary,
+    marginBottom: AppTheme.spacing.md,
+  },
+  exerciseList: {
+    gap: AppTheme.spacing.sm,
+  },
+  exerciseItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppTheme.spacing.sm,
+  },
+  exerciseItemActive: {
+    // Activo
+  },
+  exerciseItemComplete: {
+    // Completado
+  },
+  exerciseItemText: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  },
+  exerciseItemTextActive: {
+    color: AppTheme.colors.primary,
+    fontWeight: AppTheme.typography.fontWeight.semiBold,
+  },
+  exerciseItemTextComplete: {
+    color: AppTheme.colors.textTertiary,
+    textDecorationLine: 'line-through',
+  },
+  completeContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: AppTheme.layout.screenPadding,
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 40,
+  completeIcon: {
+    marginBottom: AppTheme.spacing.xl,
+  },
+  completeTitle: {
+    fontSize: AppTheme.typography.fontSize.xxl,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+    marginBottom: AppTheme.spacing.sm,
+    textAlign: 'center',
+  },
+  completeSubtitle: {
+    fontSize: AppTheme.typography.fontSize.base,
+    color: AppTheme.colors.textSecondary,
+    marginBottom: AppTheme.spacing.xxl,
+    textAlign: 'center',
+  },
+  completeSummary: {
+    flexDirection: 'row',
     alignItems: 'center',
-    width: width - 80,
+    backgroundColor: AppTheme.colors.backgroundCard,
+    borderRadius: AppTheme.borderRadius.lg,
+    padding: AppTheme.spacing.xl,
+    marginBottom: AppTheme.spacing.xxl,
+    width: '100%',
   },
-  modalTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a2e',
-    marginBottom: 20,
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
   },
-  modalEmoji: {
-    fontSize: 80,
-    marginBottom: 20,
+  summaryValue: {
+    fontSize: AppTheme.typography.fontSize.xxxl,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.primary,
   },
-  modalText: {
-    fontSize: 18,
-    color: '#666',
+  summaryLabel: {
+    fontSize: AppTheme.typography.fontSize.xs,
+    color: AppTheme.colors.textSecondary,
+    marginTop: AppTheme.spacing.xs,
+  },
+  summaryDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: AppTheme.colors.backgroundCardLight,
+  },
+  completeButton: {
+    width: '100%',
+    marginBottom: AppTheme.spacing.md,
   },
 });
 

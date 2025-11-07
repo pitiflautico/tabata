@@ -136,7 +136,6 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
       return;
     }
 
-    // TODO: Navigate to workout session screen
     Alert.alert(
       'Iniciar Entrenamiento',
       `¿Comenzar entrenamiento de ${generatedWorkout.getTotalDurationMinutes()} minutos?`,
@@ -145,8 +144,7 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
         {
           text: 'Iniciar',
           onPress: () => {
-            // navigation.navigate('WorkoutSession', { workout: generatedWorkout });
-            Alert.alert('En desarrollo', 'Pantalla de sesión en construcción');
+            navigation.navigate('WorkoutSession', { workout: generatedWorkout });
           },
         },
       ]
