@@ -151,8 +151,16 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
       return;
     }
 
-    block.exercises.splice(exerciseIndex, 1);
-    setGeneratedWorkout(updatedWorkout);
+    const exerciseName = block.exercises[exerciseIndex].name;
+
+    CustomAlert.confirm(
+      'Eliminar Ejercicio',
+      `¿Deseas eliminar "${exerciseName}" de este bloque?`,
+      () => {
+        block.exercises.splice(exerciseIndex, 1);
+        setGeneratedWorkout(updatedWorkout);
+      }
+    );
   };
 
   const toggleBlockExpansion = (blockIndex) => {
@@ -829,8 +837,12 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     backgroundColor: AppTheme.colors.background,
-    borderRadius: 12,
-    padding: 2,
+    borderRadius: 16,
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionButtons: {
     gap: AppTheme.spacing.md,
