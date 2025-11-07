@@ -16,7 +16,8 @@ class WorkoutGenerator {
   generateBalancedBlock(
     availableExercises,
     exercisesPerBlock = 4,
-    ratio = TabataRatio.CLASSIC
+    ratio = TabataRatio.CLASSIC,
+    blockIndex = 0
   ) {
     if (availableExercises.length < exercisesPerBlock) {
       throw new Error('No hay suficientes ejercicios para crear el bloque');
@@ -73,7 +74,7 @@ class WorkoutGenerator {
     }
 
     return new TabataBlock({
-      id: `block-${Date.now()}`,
+      id: `block-${Date.now()}-${blockIndex}`,
       name: `Bloque ${selectedExercises.length} ejercicios`,
       exercises: selectedExercises,
       ratio: ratio,
@@ -92,7 +93,8 @@ class WorkoutGenerator {
   generateIntensityBalancedBlock(
     availableExercises,
     exercisesPerBlock = 4,
-    ratio = TabataRatio.CLASSIC
+    ratio = TabataRatio.CLASSIC,
+    blockIndex = 0
   ) {
     const lowIntensity = availableExercises.filter(ex => ex.cardioIndex <= 2.5);
     const mediumIntensity = availableExercises.filter(ex => ex.cardioIndex > 2.5 && ex.cardioIndex <= 3.5);
@@ -144,7 +146,7 @@ class WorkoutGenerator {
     }
 
     return new TabataBlock({
-      id: `block-${Date.now()}`,
+      id: `block-${Date.now()}-${blockIndex}`,
       name: `Bloque Intensidad Balanceada`,
       exercises: selectedExercises,
       ratio: ratio,
@@ -182,7 +184,8 @@ class WorkoutGenerator {
       const block = this.generateIntensityBalancedBlock(
         unusedExercises.length > 0 ? unusedExercises : availablePool,
         exercisesPerBlock,
-        ratio
+        ratio,
+        i
       );
 
       // Marcar ejercicios como usados
