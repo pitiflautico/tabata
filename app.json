@@ -11,10 +11,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tabataapp.tabata",
+      "bundleIdentifier": "com.danielperez.tabata",
       "buildNumber": "1",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio",
+          "audio"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
