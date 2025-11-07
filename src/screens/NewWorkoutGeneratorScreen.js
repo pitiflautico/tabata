@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, CommonStyles } from '../theme/AppTheme';
-import { AppContext } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 import { exerciseCatalog } from '../data/exerciseCatalog';
 import { TabataRatio } from '../models/Block';
 import WorkoutGenerator from '../services/WorkoutGenerator';
@@ -24,7 +24,7 @@ import ExerciseCard from '../components/ExerciseCard';
  * Pantalla de generación de entrenamientos con AI Coach
  */
 const NewWorkoutGeneratorScreen = ({ navigation }) => {
-  const { config } = useContext(AppContext);
+  const { config } = useApp();
   const [numberOfBlocks, setNumberOfBlocks] = useState(3);
   const [exercisesPerBlock, setExercisesPerBlock] = useState(4);
   const [selectedRatio, setSelectedRatio] = useState('CLASSIC');

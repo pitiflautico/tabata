@@ -25,6 +25,18 @@ export const AppProvider = ({ children }) => {
   // Workout History
   const [workoutHistory, setWorkoutHistory] = useState([]);
 
+  // Generated Workouts (from AI Coach)
+  const [savedWorkouts, setSavedWorkouts] = useState([]);
+
+  // Workout Templates
+  const [templates, setTemplates] = useState([]);
+
+  // Settings
+  const [settings, setSettings] = useState({
+    soundEnabled: true,
+    vibrationEnabled: true,
+  });
+
   // Statistics
   const [stats, setStats] = useState({
     totalWorkouts: 0,
@@ -49,21 +61,35 @@ export const AppProvider = ({ children }) => {
   // Save data to AsyncStorage whenever it changes
   useEffect(() => {
     saveData();
-  }, [config, workoutHistory, stats, goals]);
+  }, [config, workoutHistory, stats, goals, savedWorkouts, templates, settings]);
 
   const loadData = async () => {
     try {
-      const [savedConfig, savedHistory, savedStats, savedGoals] = await Promise.all([
+      const [
+        savedConfig,
+        savedHistory,
+        savedStats,
+        savedGoals,
+        savedWorkoutsData,
+        savedTemplatesData,
+        savedSettingsData,
+      ] = await Promise.all([
         AsyncStorage.getItem('config'),
         AsyncStorage.getItem('workoutHistory'),
         AsyncStorage.getItem('stats'),
         AsyncStorage.getItem('goals'),
+        AsyncStorage.getItem('savedWorkouts'),
+        AsyncStorage.getItem('templates'),
+        AsyncStorage.getItem('settings'),
       ]);
 
       if (savedConfig) setConfig(JSON.parse(savedConfig));
       if (savedHistory) setWorkoutHistory(JSON.parse(savedHistory));
       if (savedStats) setStats(JSON.parse(savedStats));
       if (savedGoals) setGoals(JSON.parse(savedGoals));
+      if (savedWorkoutsData) setSavedWorkouts(JSON.parse(savedWorkoutsData));
+      if (savedTemplatesData) setTemplates(JSON.parse(savedTemplatesData));
+      if (savedSettingsData) setSettings(JSON.parse(savedSettingsData));
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -76,6 +102,9 @@ export const AppProvider = ({ children }) => {
         AsyncStorage.setItem('workoutHistory', JSON.stringify(workoutHistory)),
         AsyncStorage.setItem('stats', JSON.stringify(stats)),
         AsyncStorage.setItem('goals', JSON.stringify(goals)),
+        AsyncStorage.setItem('savedWorkouts', JSON.stringify(savedWorkouts)),
+        AsyncStorage.setItem('templates', JSON.stringify(templates)),
+        AsyncStorage.setItem('settings', JSON.stringify(settings)),
       ]);
     } catch (error) {
       console.error('Error saving data:', error);
@@ -187,6 +216,51 @@ export const AppProvider = ({ children }) => {
     };
   };
 
+  // Save generated workout
+  const saveGeneratedWorkout = (workout, name = null) => {
+    const workoutToSave = {
+      id: `workout-${Date.now()}`,
+      name: name || workout.name,
+      createdAt: new Date().toISOString(),
+      ...workout,
+    };
+
+    setSavedWorkouts([workoutToSave, ...savedWorkouts]);
+    return workoutToSave;
+  };
+
+  // Delete saved workout
+  const deleteSavedWorkout = (workoutId) => {
+    setSavedWorkouts(savedWorkouts.filter((w) => w.id !== workoutId));
+  };
+
+  // Save as template
+  const saveAsTemplate = (workout, name, description = '') => {
+    const template = {
+      id: `template-${Date.now()}`,
+      name,
+      description,
+      numberOfBlocks: workout.blocks.length,
+      exercisesPerBlock: workout.blocks[0]?.exercises.length || 4,
+      ratio: workout.blocks[0]?.ratio,
+      createdAt: new Date().toISOString(),
+      blocks: workout.blocks,
+    };
+
+    setTemplates([template, ...templates]);
+    return template;
+  };
+
+  // Delete template
+  const deleteTemplate = (templateId) => {
+    setTemplates(templates.filter((t) => t.id !== templateId));
+  };
+
+  // Update settings
+  const updateSettings = (newSettings) => {
+    setSettings({ ...settings, ...newSettings });
+  };
+
   // Reset all data (for testing)
   const resetAllData = async () => {
     setConfig({
@@ -198,6 +272,12 @@ export const AppProvider = ({ children }) => {
       restBetweenCycles: 60,
     });
     setWorkoutHistory([]);
+    setSavedWorkouts([]);
+    setTemplates([]);
+    setSettings({
+      soundEnabled: true,
+      vibrationEnabled: true,
+    });
     setStats({
       totalWorkouts: 0,
       totalCalories: 0,
@@ -225,6 +305,14 @@ export const AppProvider = ({ children }) => {
     getWorkoutsForPeriod,
     getTodayWorkouts,
     getWeeklyStats,
+    savedWorkouts,
+    saveGeneratedWorkout,
+    deleteSavedWorkout,
+    templates,
+    saveAsTemplate,
+    deleteTemplate,
+    settings,
+    updateSettings,
     resetAllData,
   };
 

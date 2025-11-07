@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, CommonStyles } from '../theme/AppTheme';
-import { AppContext } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 import CircularProgress from '../components/CircularProgress';
 import CircularButton from '../components/CircularButton';
 import Button from '../components/Button';
+import SoundService from '../services/SoundService';
 
 /**
  * Estados de la sesión
@@ -34,7 +35,7 @@ const SessionPhase = {
  */
 const WorkoutSessionScreen = ({ route, navigation }) => {
   const { workout } = route.params;
-  const { addWorkout } = useContext(AppContext);
+  const { addWorkout, settings } = useApp();
 
   // Estado de la sesión
   const [phase, setPhase] = useState(SessionPhase.GET_READY);
@@ -45,6 +46,21 @@ const WorkoutSessionScreen = ({ route, navigation }) => {
   const [startTime, setStartTime] = useState(Date.now());
 
   const timerRef = useRef(null);
+
+  // Initialize sound service
+  useEffect(() => {
+    SoundService.initialize();
+    SoundService.setEnabled(settings.soundEnabled);
+
+    return () => {
+      SoundService.cleanup();
+    };
+  }, []);
+
+  // Update sound settings
+  useEffect(() => {
+    SoundService.setEnabled(settings.soundEnabled);
+  }, [settings.soundEnabled]);
 
   // Obtener datos actuales
   const currentBlock = workout.blocks[currentBlockIndex];
@@ -136,16 +152,27 @@ const WorkoutSessionScreen = ({ route, navigation }) => {
     };
   }, [phase, isPaused, currentBlockIndex, currentExerciseIndex]);
 
+  // Countdown sounds
+  useEffect(() => {
+    if (timeLeft <= 3 && timeLeft >= 1) {
+      SoundService.playCountdown(timeLeft);
+    }
+  }, [timeLeft]);
+
   // Cuando se completa una fase
   const handlePhaseComplete = () => {
-    Vibration.vibrate(200);
+    if (settings.vibrationEnabled) {
+      Vibration.vibrate(200);
+    }
 
     if (phase === SessionPhase.GET_READY) {
       // Iniciar primer ejercicio
+      SoundService.playGetReady();
       setPhase(SessionPhase.PREPARE);
       setTimeLeft(5);
     } else if (phase === SessionPhase.PREPARE) {
       // Comenzar trabajo
+      SoundService.playWorkStart();
       setPhase(SessionPhase.WORK);
       setTimeLeft(ratio.work);
     } else if (phase === SessionPhase.WORK) {
@@ -161,11 +188,13 @@ const WorkoutSessionScreen = ({ route, navigation }) => {
           handleWorkoutComplete();
         } else {
           // Descanso entre bloques
+          SoundService.playBlockComplete();
           setPhase(SessionPhase.BLOCK_REST);
           setTimeLeft(30);
         }
       } else {
         // Descanso normal entre ejercicios
+        SoundService.playRestStart();
         setPhase(SessionPhase.REST);
         setTimeLeft(ratio.rest);
       }
@@ -176,6 +205,7 @@ const WorkoutSessionScreen = ({ route, navigation }) => {
       setTimeLeft(5);
     } else if (phase === SessionPhase.BLOCK_REST) {
       // Siguiente bloque
+      SoundService.playGetReady();
       setCurrentBlockIndex(currentBlockIndex + 1);
       setCurrentExerciseIndex(0);
       setPhase(SessionPhase.PREPARE);
@@ -186,7 +216,11 @@ const WorkoutSessionScreen = ({ route, navigation }) => {
   // Completar workout
   const handleWorkoutComplete = () => {
     setPhase(SessionPhase.COMPLETE);
-    Vibration.vibrate([0, 200, 100, 200, 100, 400]);
+    SoundService.playWorkoutComplete();
+
+    if (settings.vibrationEnabled) {
+      Vibration.vibrate([0, 200, 100, 200, 100, 400]);
+    }
 
     const duration = Math.floor((Date.now() - startTime) / 1000 / 60);
     const calories = Math.round(duration * 8.5);
