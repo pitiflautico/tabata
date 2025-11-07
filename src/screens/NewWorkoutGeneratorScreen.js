@@ -212,6 +212,7 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
           icon="arrow-back"
           size="medium"
           onPress={() => navigation.goBack()}
+          accessibilityLabel="Volver atrás"
         />
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>AI Coach</Text>
@@ -226,6 +227,7 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
               'El coach genera entrenamientos balanceados alternando intensidades y evitando repetir grupos musculares consecutivamente.'
             )
           }
+          accessibilityLabel="Información sobre AI Coach"
         />
       </View>
 
