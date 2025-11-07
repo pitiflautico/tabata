@@ -8,12 +8,14 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, CommonStyles } from '../theme/AppTheme';
 import Card from '../components/Card';
 import MetricCard from '../components/MetricCard';
 import CircularButton from '../components/CircularButton';
 import BarChart from '../components/BarChart';
 import CircularProgress from '../components/CircularProgress';
+import Button from '../components/Button';
 import { useApp } from '../context/AppContext';
 
 const StatsScreen = ({ navigation }) => {
@@ -121,11 +123,28 @@ const StatsScreen = ({ navigation }) => {
         />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* Empty State */}
+      {stats.totalWorkouts === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="bar-chart-outline" size={80} color={AppTheme.colors.textTertiary} />
+          <Text style={styles.emptyTitle}>Sin estadísticas aún</Text>
+          <Text style={styles.emptyText}>
+            Completa tu primer entrenamiento para comenzar a ver tus estadísticas y progreso
+          </Text>
+          <Button
+            title="Iniciar Entrenamiento"
+            icon="play"
+            onPress={() => navigation.navigate('Home')}
+            size="large"
+            style={styles.emptyButton}
+          />
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Weekly Goal Progress */}
         <Card style={styles.goalCard}>
           <View style={styles.goalHeader}>
@@ -301,6 +320,7 @@ const StatsScreen = ({ navigation }) => {
         {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+      )}
     </View>
   );
 };
@@ -472,6 +492,31 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: AppTheme.layout.screenPadding,
+  },
+  emptyTitle: {
+    fontSize: AppTheme.typography.fontSize.xxl,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+    marginTop: AppTheme.spacing.xl,
+    marginBottom: AppTheme.spacing.sm,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: AppTheme.typography.fontSize.base,
+    color: AppTheme.colors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 300,
+    lineHeight: 22,
+    marginBottom: AppTheme.spacing.xxl,
+  },
+  emptyButton: {
+    minWidth: 200,
   },
 });
 
