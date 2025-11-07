@@ -19,18 +19,30 @@ import CircularButton from '../components/CircularButton';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import ExerciseCard from '../components/ExerciseCard';
+import SaveWorkoutModal from '../components/SaveWorkoutModal';
+import WorkoutPresetsModal from '../components/WorkoutPresetsModal';
+import { shareWorkout, formatWorkoutAsText } from '../utils/shareWorkout';
 
 /**
  * Pantalla de generación de entrenamientos con AI Coach
  */
 const NewWorkoutGeneratorScreen = ({ navigation }) => {
-  const { config } = useApp();
+  const {
+    config,
+    saveGeneratedWorkout,
+    saveAsTemplate,
+  } = useApp();
+
   const [numberOfBlocks, setNumberOfBlocks] = useState(3);
   const [exercisesPerBlock, setExercisesPerBlock] = useState(4);
   const [selectedRatio, setSelectedRatio] = useState('CLASSIC');
   const [generatedWorkout, setGeneratedWorkout] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedBlocks, setExpandedBlocks] = useState({});
+
+  // Modals
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showPresetsModal, setShowPresetsModal] = useState(false);
 
   const ratios = [
     {
