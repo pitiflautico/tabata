@@ -7,6 +7,7 @@ import {
   StatusBar,
   Platform,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, CommonStyles } from '../theme/AppTheme';
@@ -43,6 +44,8 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
   // Modals
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showPresetsModal, setShowPresetsModal] = useState(false);
+  const [showMuscleGroupModal, setShowMuscleGroupModal] = useState(false);
+  const [replaceTarget, setReplaceTarget] = useState(null); // {blockIndex, exerciseIndex}
 
   // Helper functions for serialized workout
   const getTotalExercises = (workout) => {
@@ -63,6 +66,17 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
     }, 0);
     return Math.ceil(totalSeconds / 60);
   };
+
+  const muscleGroups = [
+    { key: 'chest', label: 'Pecho', icon: 'body' },
+    { key: 'back', label: 'Espalda', icon: 'fitness' },
+    { key: 'legs', label: 'Piernas', icon: 'walk' },
+    { key: 'shoulders', label: 'Hombros', icon: 'barbell' },
+    { key: 'arms', label: 'Brazos', icon: 'git-pull-request' },
+    { key: 'abs', label: 'Abdomen', icon: 'contract' },
+    { key: 'glutes', label: 'Glúteos', icon: 'fitness-outline' },
+    { key: 'cardio', label: 'Cardio', icon: 'heart' },
+  ];
 
   const ratios = [
     {
@@ -161,6 +175,41 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
         setGeneratedWorkout(updatedWorkout);
       }
     );
+  };
+
+  const handleReplaceExercise = (blockIndex, exerciseIndex) => {
+    setReplaceTarget({ blockIndex, exerciseIndex });
+    setShowMuscleGroupModal(true);
+  };
+
+  const replaceWithMuscleGroup = (muscleGroup) => {
+    if (!generatedWorkout || !replaceTarget) return;
+
+    const { blockIndex, exerciseIndex } = replaceTarget;
+    const block = generatedWorkout.blocks[blockIndex];
+
+    // Filtrar ejercicios por grupo muscular
+    const filteredExercises = exerciseCatalog.filter(ex =>
+      ex.muscleGroups.includes(muscleGroup)
+    );
+
+    if (filteredExercises.length === 0) {
+      CustomAlert.warning('Sin ejercicios', `No hay ejercicios disponibles para ${muscleGroup}`);
+      setShowMuscleGroupModal(false);
+      setReplaceTarget(null);
+      return;
+    }
+
+    // Seleccionar ejercicio aleatorio del grupo
+    const randomExercise = filteredExercises[Math.floor(Math.random() * filteredExercises.length)];
+
+    // Reemplazar ejercicio
+    const updatedWorkout = { ...generatedWorkout };
+    updatedWorkout.blocks[blockIndex].exercises[exerciseIndex] = randomExercise;
+    setGeneratedWorkout(updatedWorkout);
+
+    setShowMuscleGroupModal(false);
+    setReplaceTarget(null);
   };
 
   const toggleBlockExpansion = (blockIndex) => {
@@ -514,18 +563,32 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
                             navigation.navigate('ExerciseDetail', { exercise })
                           }
                         />
-                        <TouchableOpacity
-                          style={styles.removeExerciseButton}
-                          onPress={() =>
-                            removeExerciseFromBlock(blockIndex, exerciseIndex)
-                          }
-                        >
-                          <Ionicons
-                            name="close-circle"
-                            size={24}
-                            color={AppTheme.colors.error}
-                          />
-                        </TouchableOpacity>
+                        <View style={styles.exerciseActions}>
+                          <TouchableOpacity
+                            style={styles.replaceExerciseButton}
+                            onPress={() =>
+                              handleReplaceExercise(blockIndex, exerciseIndex)
+                            }
+                          >
+                            <Ionicons
+                              name="swap-horizontal"
+                              size={20}
+                              color={AppTheme.colors.primary}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.removeExerciseButton}
+                            onPress={() =>
+                              removeExerciseFromBlock(blockIndex, exerciseIndex)
+                            }
+                          >
+                            <Ionicons
+                              name="close-circle"
+                              size={20}
+                              color={AppTheme.colors.error}
+                            />
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     ))}
                   </>
@@ -555,6 +618,53 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Muscle Group Selection Modal */}
+      <Modal
+        visible={showMuscleGroupModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMuscleGroupModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMuscleGroupModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.muscleGroupModal}
+            activeOpacity={1}
+          >
+            <Text style={styles.muscleGroupModalTitle}>
+              Selecciona Grupo Muscular
+            </Text>
+            <Text style={styles.muscleGroupModalSubtitle}>
+              El ejercicio será reemplazado por uno del grupo seleccionado
+            </Text>
+
+            <View style={styles.muscleGroupGrid}>
+              {muscleGroups.map((group) => (
+                <TouchableOpacity
+                  key={group.key}
+                  style={styles.muscleGroupItem}
+                  onPress={() => replaceWithMuscleGroup(group.key)}
+                >
+                  <Ionicons name={group.icon} size={32} color={AppTheme.colors.primary} />
+                  <Text style={styles.muscleGroupLabel}>{group.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Button
+              title="Cancelar"
+              variant="outline"
+              onPress={() => setShowMuscleGroupModal(false)}
+              fullWidth
+              style={styles.cancelButton}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -854,6 +964,75 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  exerciseActions: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  replaceExerciseButton: {
+    backgroundColor: AppTheme.colors.background,
+    borderRadius: 16,
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: AppTheme.layout.screenPadding,
+  },
+  muscleGroupModal: {
+    backgroundColor: AppTheme.colors.backgroundCard,
+    borderRadius: AppTheme.borderRadius.xl,
+    padding: AppTheme.spacing.xl,
+    width: '100%',
+    maxWidth: 400,
+  },
+  muscleGroupModalTitle: {
+    fontSize: AppTheme.typography.fontSize.xl,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+    textAlign: 'center',
+    marginBottom: AppTheme.spacing.sm,
+  },
+  muscleGroupModalSubtitle: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: AppTheme.spacing.xl,
+  },
+  muscleGroupGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: AppTheme.spacing.md,
+    marginBottom: AppTheme.spacing.xl,
+  },
+  muscleGroupItem: {
+    flex: 1,
+    minWidth: '28%',
+    backgroundColor: AppTheme.colors.backgroundCardLight,
+    borderRadius: AppTheme.borderRadius.lg,
+    padding: AppTheme.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    aspectRatio: 1,
+  },
+  muscleGroupLabel: {
+    fontSize: AppTheme.typography.fontSize.xs,
+    fontWeight: AppTheme.typography.fontWeight.semiBold,
+    color: AppTheme.colors.text,
+    marginTop: AppTheme.spacing.xs,
+    textAlign: 'center',
+  },
+  cancelButton: {
+    marginTop: AppTheme.spacing.sm,
   },
 });
 
