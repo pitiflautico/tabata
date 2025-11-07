@@ -48,7 +48,8 @@ export class Exercise {
     equipment = [],
     variations = [],
     frames = [],
-    isCombo = false
+    isCombo = false,
+    imageUrl = null
   }) {
     this.id = id;
     this.name = name;
@@ -61,6 +62,7 @@ export class Exercise {
     this.variations = variations; // Array de variaciones del ejercicio
     this.frames = frames; // Array de frames visuales
     this.isCombo = isCombo; // Si es ejercicio combinado (tren superior + inferior)
+    this.imageUrl = imageUrl; // URL o referencia local a imagen del ejercicio
   }
 
   /**

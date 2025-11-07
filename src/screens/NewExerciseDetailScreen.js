@@ -6,6 +6,7 @@ import {
   ScrollView,
   StatusBar,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, CommonStyles } from '../theme/AppTheme';
@@ -95,6 +96,28 @@ const NewExerciseDetailScreen = ({ route, navigation }) => {
             </View>
           )}
         </View>
+
+        {/* Exercise Image */}
+        {exercise.imageUrl ? (
+          <Card style={styles.imageCard}>
+            <Image
+              source={{ uri: exercise.imageUrl }}
+              style={styles.exerciseImage}
+              resizeMode="cover"
+            />
+          </Card>
+        ) : (
+          <Card style={styles.imagePlaceholder}>
+            <Ionicons
+              name="image-outline"
+              size={64}
+              color={AppTheme.colors.textSecondary}
+            />
+            <Text style={styles.imagePlaceholderText}>
+              Imagen no disponible
+            </Text>
+          </Card>
+        )}
 
         {/* Description */}
         <Card style={styles.section}>
@@ -323,6 +346,27 @@ const styles = StyleSheet.create({
     fontSize: AppTheme.typography.fontSize.xs,
     fontWeight: AppTheme.typography.fontWeight.bold,
     letterSpacing: 1,
+  },
+  imageCard: {
+    marginBottom: AppTheme.spacing.lg,
+    padding: 0,
+    overflow: 'hidden',
+  },
+  exerciseImage: {
+    width: '100%',
+    height: 200,
+  },
+  imagePlaceholder: {
+    marginBottom: AppTheme.spacing.lg,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: AppTheme.colors.backgroundCardLight,
+  },
+  imagePlaceholderText: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
+    marginTop: AppTheme.spacing.sm,
   },
   section: {
     marginBottom: AppTheme.spacing.lg,

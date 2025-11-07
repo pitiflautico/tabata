@@ -94,6 +94,16 @@ const NewHomeScreen = ({ navigation }) => {
         />
 
         <Button
+          title="AI Coach - Generate Workout"
+          icon="sparkles"
+          variant="secondary"
+          onPress={() => navigation.navigate('WorkoutGenerator')}
+          size="large"
+          fullWidth
+          style={styles.aiCoachButton}
+        />
+
+        <Button
           title="Browse Exercises"
           icon="list"
           variant="outline"
@@ -267,6 +277,9 @@ const styles = StyleSheet.create({
     color: AppTheme.colors.textSecondary,
   },
   startButton: {
+    marginBottom: AppTheme.spacing.md,
+  },
+  aiCoachButton: {
     marginBottom: AppTheme.spacing.md,
   },
   exercisesButton: {
