@@ -83,7 +83,7 @@ const NewHomeScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Quick Action Button */}
+        {/* Quick Action Buttons */}
         <Button
           title="Start Tabata Workout"
           icon="play-circle"
@@ -91,6 +91,16 @@ const NewHomeScreen = ({ navigation }) => {
           size="large"
           fullWidth
           style={styles.startButton}
+        />
+
+        <Button
+          title="Browse Exercises"
+          icon="list"
+          variant="outline"
+          onPress={() => navigation.navigate('Exercises')}
+          size="large"
+          fullWidth
+          style={styles.exercisesButton}
         />
 
         {/* Today's Metrics */}
@@ -257,6 +267,9 @@ const styles = StyleSheet.create({
     color: AppTheme.colors.textSecondary,
   },
   startButton: {
+    marginBottom: AppTheme.spacing.md,
+  },
+  exercisesButton: {
     marginBottom: AppTheme.spacing.xl,
   },
   section: {
