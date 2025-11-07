@@ -7,7 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 // Screens
 import HomeScreen from '../screens/HomeScreen';
 import WorkoutGeneratorScreen from '../screens/WorkoutGeneratorScreen';
-import WorkoutSessionScreen from '../screens/WorkoutSessionScreen';
+import WorkoutSessionScreen from '../screens/WorkoutSessionScreenTimerPlus'; // Timer Plus design
 import WorkoutCompleteScreen from '../screens/WorkoutCompleteScreen';
 import ExerciseCatalogScreen from '../screens/ExerciseCatalogScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
