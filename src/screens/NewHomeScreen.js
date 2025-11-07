@@ -113,6 +113,16 @@ const NewHomeScreen = ({ navigation }) => {
           style={styles.exercisesButton}
         />
 
+        <Button
+          title="Historial de Entrenamientos"
+          icon="calendar"
+          variant="outline"
+          onPress={() => navigation.navigate('WorkoutHistory')}
+          size="large"
+          fullWidth
+          style={styles.exercisesButton}
+        />
+
         {/* Today's Metrics */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today</Text>
