@@ -10,6 +10,7 @@ import TimerScreen from '../screens/TimerScreen';
 import StatsScreen from '../screens/StatsScreen';
 import NewSettingsScreen from '../screens/NewSettingsScreen';
 import NewExerciseCatalogScreen from '../screens/NewExerciseCatalogScreen';
+import NewExerciseDetailScreen from '../screens/NewExerciseDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -28,6 +29,7 @@ const HomeStack = () => {
       <Stack.Screen name="Stats" component={StatsScreen} />
       <Stack.Screen name="Settings" component={NewSettingsScreen} />
       <Stack.Screen name="Exercises" component={NewExerciseCatalogScreen} />
+      <Stack.Screen name="ExerciseDetail" component={NewExerciseDetailScreen} />
     </Stack.Navigator>
   );
 };
