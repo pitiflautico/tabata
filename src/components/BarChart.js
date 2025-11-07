@@ -9,7 +9,7 @@ const BarChart = ({
   showValues = true,
   colors = [AppTheme.colors.primary, AppTheme.colors.secondary],
 }) => {
-  const maxValue = Math.max(...data.map(item => item.value));
+  const maxValue = Math.max(...data.map(item => item.value), 1); // Minimum 1 to avoid division by zero
 
   const getBarColor = (index) => {
     if (Array.isArray(colors)) {
@@ -22,7 +22,8 @@ const BarChart = ({
     <View style={styles.container}>
       <View style={[styles.chartContainer, { height }]}>
         {data.map((item, index) => {
-          const barHeight = (item.value / maxValue) * height;
+          // Calculate bar height, ensuring it's always a valid number
+          const barHeight = item.value > 0 ? (item.value / maxValue) * height : 4;
           const barColor = item.color || getBarColor(index);
 
           return (
