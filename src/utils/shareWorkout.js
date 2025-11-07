@@ -1,6 +1,6 @@
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
-import { Alert } from 'react-native';
+import { CustomAlert } from '../components/CustomAlert';
 
 /**
  * Utilitario para compartir workout en formato JSON
@@ -46,7 +46,7 @@ export const shareWorkout = async (workout) => {
         UTI: 'public.json',
       });
     } else {
-      Alert.alert(
+      CustomAlert.warning(
         'No disponible',
         'La función de compartir no está disponible en este dispositivo'
       );
@@ -64,7 +64,7 @@ export const shareWorkout = async (workout) => {
     return true;
   } catch (error) {
     console.error('Error sharing workout:', error);
-    Alert.alert('Error', 'No se pudo compartir el entrenamiento');
+    CustomAlert.error('Error', 'No se pudo compartir el entrenamiento');
     return false;
   }
 };

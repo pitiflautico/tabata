@@ -7,7 +7,6 @@ import {
   StatusBar,
   Platform,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, CommonStyles } from '../theme/AppTheme';
@@ -22,6 +21,7 @@ import ExerciseCard from '../components/ExerciseCard';
 import SaveWorkoutModal from '../components/SaveWorkoutModal';
 import WorkoutPresetsModal from '../components/WorkoutPresetsModal';
 import { shareWorkout, formatWorkoutAsText } from '../utils/shareWorkout';
+import { CustomAlert } from '../components/CustomAlert';
 
 /**
  * Pantalla de generación de entrenamientos con AI Coach
@@ -43,6 +43,26 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
   // Modals
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showPresetsModal, setShowPresetsModal] = useState(false);
+
+  // Helper functions for serialized workout
+  const getTotalExercises = (workout) => {
+    if (!workout) return 0;
+    const uniqueExercises = new Set();
+    workout.blocks.forEach(block => {
+      block.exercises.forEach(ex => uniqueExercises.add(ex.id));
+    });
+    return uniqueExercises.size;
+  };
+
+  const getTotalDurationMinutes = (workout) => {
+    if (!workout) return 0;
+    const totalSeconds = workout.blocks.reduce((acc, block) => {
+      const exerciseDuration = block.ratio.work + block.ratio.rest;
+      const blockDuration = exerciseDuration * block.exercises.length;
+      return acc + (blockDuration * (block.rounds || 1));
+    }, 0);
+    return Math.ceil(totalSeconds / 60);
+  };
 
   const ratios = [
     {
@@ -90,7 +110,7 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
         // Expand first block by default
         setExpandedBlocks({ 0: true });
       } catch (error) {
-        Alert.alert('Error', 'No se pudo generar el entrenamiento');
+        CustomAlert.error('Error', 'No se pudo generar el entrenamiento');
         console.error(error);
       } finally {
         setIsGenerating(false);
@@ -114,9 +134,9 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
       updatedWorkout.blocks[blockIndex] = newBlock;
       setGeneratedWorkout(updatedWorkout);
 
-      Alert.alert('✓ Bloque regenerado', 'El bloque ha sido actualizado');
+      CustomAlert.success('✓ Bloque regenerado', 'El bloque ha sido actualizado');
     } catch (error) {
-      Alert.alert('Error', 'No se pudo regenerar el bloque');
+      CustomAlert.error('Error', 'No se pudo regenerar el bloque');
     }
   };
 
@@ -127,12 +147,20 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
     const block = updatedWorkout.blocks[blockIndex];
 
     if (block.exercises.length <= 2) {
-      Alert.alert('Aviso', 'Un bloque debe tener al menos 2 ejercicios');
+      CustomAlert.warning('Aviso', 'Un bloque debe tener al menos 2 ejercicios');
       return;
     }
 
-    block.exercises.splice(exerciseIndex, 1);
-    setGeneratedWorkout(updatedWorkout);
+    const exerciseName = block.exercises[exerciseIndex].name;
+
+    CustomAlert.confirm(
+      'Eliminar Ejercicio',
+      `¿Deseas eliminar "${exerciseName}" de este bloque?`,
+      () => {
+        block.exercises.splice(exerciseIndex, 1);
+        setGeneratedWorkout(updatedWorkout);
+      }
+    );
   };
 
   const toggleBlockExpansion = (blockIndex) => {
@@ -144,22 +172,21 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
 
   const startWorkout = () => {
     if (!generatedWorkout) {
-      Alert.alert('Aviso', 'Primero genera un entrenamiento');
+      CustomAlert.warning('Aviso', 'Primero genera un entrenamiento');
       return;
     }
 
-    Alert.alert(
+    CustomAlert.confirm(
       'Iniciar Entrenamiento',
-      `¿Comenzar entrenamiento de ${generatedWorkout.getTotalDurationMinutes()} minutos?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Iniciar',
-          onPress: () => {
-            navigation.navigate('WorkoutSession', { workout: generatedWorkout });
-          },
-        },
-      ]
+      `¿Comenzar entrenamiento de ${getTotalDurationMinutes(generatedWorkout)} minutos?`,
+      () => {
+        // Serializar el workout (convertir Date a ISO string para React Navigation)
+        const serializedWorkout = {
+          ...generatedWorkout,
+          date: generatedWorkout.date?.toISOString() || new Date().toISOString(),
+        };
+        navigation.navigate('WorkoutSession', { workout: serializedWorkout });
+      }
     );
   };
 
@@ -194,7 +221,7 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
           icon="information-circle-outline"
           size="medium"
           onPress={() =>
-            Alert.alert(
+            CustomAlert.alert(
               'AI Coach',
               'El coach genera entrenamientos balanceados alternando intensidades y evitando repetir grupos musculares consecutivamente.'
             )
@@ -403,8 +430,8 @@ const NewWorkoutGeneratorScreen = ({ navigation }) => {
                     ✓ Entrenamiento Generado
                   </Text>
                   <Text style={styles.workoutSubtitle}>
-                    {generatedWorkout.getTotalExercises()} ejercicios únicos •{' '}
-                    {generatedWorkout.getTotalDurationMinutes()} minutos
+                    {getTotalExercises(generatedWorkout)} ejercicios únicos •{' '}
+                    {getTotalDurationMinutes(generatedWorkout)} minutos
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -810,8 +837,12 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     backgroundColor: AppTheme.colors.background,
-    borderRadius: 12,
-    padding: 2,
+    borderRadius: 16,
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionButtons: {
     gap: AppTheme.spacing.md,

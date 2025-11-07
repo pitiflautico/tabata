@@ -8,13 +8,14 @@ import {
   Platform,
   TouchableOpacity,
   Modal,
-  Alert,
+  Vibration,
 } from 'react-native';
 import { AppTheme, CommonStyles } from '../theme/AppTheme';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import CircularButton from '../components/CircularButton';
 import { useApp } from '../context/AppContext';
+import { CustomAlert } from '../components/CustomAlert';
 
 const NewSettingsScreen = ({ navigation }) => {
   const { config: globalConfig, updateConfig } = useApp();
@@ -120,8 +121,20 @@ const NewSettingsScreen = ({ navigation }) => {
       };
       setConfig(newConfig);
       updateConfig(newConfig);
+
+      // Haptic feedback
+      Vibration.vibrate(50);
+
+      // Close modal first for smooth UX
+      setEditingField(null);
+
+      // Show success message briefly
+      setTimeout(() => {
+        CustomAlert.success('Guardado', 'Configuración actualizada correctamente');
+      }, 200);
+    } else {
+      setEditingField(null);
     }
-    setEditingField(null);
   };
 
   const handleCancel = () => {

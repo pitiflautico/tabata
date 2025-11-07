@@ -6,9 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  Alert
 } from 'react-native';
 import ProgressService from '../services/ProgressService';
+import { CustomAlert } from '../components/CustomAlert';
 
 /**
  * Pantalla de configuración
@@ -32,7 +32,7 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   const handleResetProgress = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Resetear Progreso',
       '¿Estás seguro? Se borrarán todos tus datos, entrenamientos e historial. Esta acción no se puede deshacer.',
       [
@@ -42,10 +42,11 @@ const SettingsScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: () => {
             ProgressService.resetProgress('default-user');
-            Alert.alert('Completado', 'Tu progreso ha sido reseteado');
+            CustomAlert.success('Completado', 'Tu progreso ha sido reseteado');
           }
         }
-      ]
+      ],
+      { type: 'warning' }
     );
   };
 
@@ -174,7 +175,7 @@ const SettingsScreen = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => Alert.alert('Exportar', 'Funcionalidad próximamente')}
+          onPress={() => CustomAlert.alert('Exportar', 'Funcionalidad próximamente')}
         >
           <Text style={styles.actionButtonIcon}>📤</Text>
           <View style={styles.actionButtonContent}>
@@ -187,7 +188,7 @@ const SettingsScreen = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => Alert.alert('Importar', 'Funcionalidad próximamente')}
+          onPress={() => CustomAlert.alert('Importar', 'Funcionalidad próximamente')}
         >
           <Text style={styles.actionButtonIcon}>📥</Text>
           <View style={styles.actionButtonContent}>

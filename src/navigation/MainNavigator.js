@@ -64,8 +64,8 @@ const MainNavigator = () => {
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'TimerTab') {
-            iconName = focused ? 'timer' : 'timer-outline';
+          } else if (route.name === 'CoachTab') {
+            iconName = focused ? 'barbell' : 'barbell-outline';
           } else if (route.name === 'StatsTab') {
             iconName = focused ? 'bar-chart' : 'bar-chart-outline';
           } else if (route.name === 'SettingsTab') {
@@ -79,12 +79,12 @@ const MainNavigator = () => {
       <Tab.Screen
         name="Home"
         component={HomeStack}
-        options={{ tabBarLabel: 'Home' }}
+        options={{ tabBarLabel: 'Inicio' }}
       />
       <Tab.Screen
-        name="TimerTab"
-        component={TimerScreen}
-        options={{ tabBarLabel: 'Timer' }}
+        name="CoachTab"
+        component={NewWorkoutGeneratorScreen}
+        options={{ tabBarLabel: 'Entrenador' }}
       />
       <Tab.Screen
         name="StatsTab"
@@ -94,7 +94,7 @@ const MainNavigator = () => {
       <Tab.Screen
         name="SettingsTab"
         component={NewSettingsScreen}
-        options={{ tabBarLabel: 'Settings' }}
+        options={{ tabBarLabel: 'Ajustes' }}
       />
     </Tab.Navigator>
   );

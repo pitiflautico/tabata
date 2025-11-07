@@ -6,12 +6,12 @@ import {
   StatusBar,
   Platform,
   Vibration,
-  Alert,
 } from 'react-native';
 import { AppTheme } from '../theme/AppTheme';
 import CircularButton from '../components/CircularButton';
 import CircularProgress from '../components/CircularProgress';
 import { useApp } from '../context/AppContext';
+import { CustomAlert } from '../components/CustomAlert';
 
 const TimerScreen = ({ navigation }) => {
   // Get config and functions from context
@@ -115,7 +115,7 @@ const TimerScreen = ({ navigation }) => {
       cycles: config.cycles,
     });
 
-    Alert.alert(
+    CustomAlert.success(
       'Workout Complete! 🎉',
       `Great job! You burned approximately ${calories} calories in ${duration} minutes.`,
       [
