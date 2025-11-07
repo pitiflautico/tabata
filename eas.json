@@ -1,0 +1,32 @@
+{
+  "cli": {
+    "version": ">= 5.2.0"
+  },
+  "build": {
+    "production": {
+      "ios": {
+        "image": "latest",
+        "resourceClass": "m-medium",
+        "distribution": "store"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "ios": {
+        "image": "latest",
+        "simulator": true
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "YOUR_APPLE_EMAIL@example.com",
+        "ascAppId": "6755035151",
+        "appleTeamId": "YOUR_TEAM_ID"
+      }
+    }
+  }
+}
