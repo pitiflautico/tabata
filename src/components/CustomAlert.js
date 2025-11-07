@@ -55,6 +55,14 @@ const CustomAlertComponent = React.forwardRef((props, ref) => {
     hide,
   }));
 
+  // Auto-register when component mounts
+  useEffect(() => {
+    alertInstance = { show, hide };
+    return () => {
+      alertInstance = null;
+    };
+  }, []);
+
   useEffect(() => {
     if (visible) {
       Animated.parallel([
