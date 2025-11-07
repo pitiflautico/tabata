@@ -3,6 +3,8 @@
  * Basado en análisis detallado de screenshots reales
  */
 
+import { Platform } from 'react-native';
+
 export const Colors = {
   // Colores principales (EXACTOS de screenshots)
   work: '#B8FF00',           // Verde lima - WORK
