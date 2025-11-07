@@ -6,7 +6,6 @@ import {
   StatusBar,
   Platform,
   Vibration,
-  Alert,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +15,7 @@ import CircularProgress from '../components/CircularProgress';
 import CircularButton from '../components/CircularButton';
 import Button from '../components/Button';
 import SoundService from '../services/SoundService';
+import { CustomAlert } from '../components/CustomAlert';
 
 /**
  * Estados de la sesión
@@ -240,24 +240,18 @@ const WorkoutSessionScreen = ({ route, navigation }) => {
 
   // Saltar ejercicio
   const skipExercise = () => {
-    Alert.alert(
+    CustomAlert.confirm(
       'Saltar Ejercicio',
       '¿Seguro que quieres saltar este ejercicio?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Saltar',
-          onPress: () => {
-            handlePhaseComplete();
-          },
-        },
-      ]
+      () => {
+        handlePhaseComplete();
+      }
     );
   };
 
   // Abandonar workout
   const quitWorkout = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Abandonar Entrenamiento',
       '¿Seguro que quieres abandonar? El progreso no se guardará.',
       [
@@ -267,7 +261,8 @@ const WorkoutSessionScreen = ({ route, navigation }) => {
           style: 'destructive',
           onPress: () => navigation.goBack(),
         },
-      ]
+      ],
+      { type: 'warning' }
     );
   };
 

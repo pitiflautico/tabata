@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert
 } from 'react-native';
 import { exerciseCatalog } from '../data/exerciseCatalog';
 import { TabataRatio } from '../models/Block';
 import WorkoutGenerator from '../services/WorkoutGenerator';
 import ExerciseCard from '../components/ExerciseCard';
+import { CustomAlert } from '../components/CustomAlert';
 
 /**
  * Pantalla de generación de entrenamientos
@@ -20,6 +20,26 @@ const WorkoutGeneratorScreen = ({ navigation }) => {
   const [exercisesPerBlock, setExercisesPerBlock] = useState(4);
   const [selectedRatio, setSelectedRatio] = useState('CLASSIC');
   const [generatedWorkout, setGeneratedWorkout] = useState(null);
+
+  // Helper functions for serialized workout
+  const getTotalExercises = (workout) => {
+    if (!workout) return 0;
+    const uniqueExercises = new Set();
+    workout.blocks.forEach(block => {
+      block.exercises.forEach(ex => uniqueExercises.add(ex.id));
+    });
+    return uniqueExercises.size;
+  };
+
+  const getTotalDurationMinutes = (workout) => {
+    if (!workout) return 0;
+    const totalSeconds = workout.blocks.reduce((acc, block) => {
+      const exerciseDuration = block.ratio.work + block.ratio.rest;
+      const blockDuration = exerciseDuration * block.exercises.length;
+      return acc + (blockDuration * (block.rounds || 1));
+    }, 0);
+    return Math.ceil(totalSeconds / 60);
+  };
 
   const ratios = [
     { key: 'BEGINNER', label: 'Principiante (30s/30s)', value: TabataRatio.BEGINNER },
@@ -39,18 +59,23 @@ const WorkoutGeneratorScreen = ({ navigation }) => {
 
       setGeneratedWorkout(workout);
     } catch (error) {
-      Alert.alert('Error', 'No se pudo generar el entrenamiento');
+      CustomAlert.error('Error', 'No se pudo generar el entrenamiento');
       console.error(error);
     }
   };
 
   const startWorkout = () => {
     if (!generatedWorkout) {
-      Alert.alert('Aviso', 'Primero genera un entrenamiento');
+      CustomAlert.warning('Aviso', 'Primero genera un entrenamiento');
       return;
     }
 
-    navigation.navigate('WorkoutSession', { workout: generatedWorkout });
+    // Serializar el workout (convertir Date a ISO string para React Navigation)
+    const serializedWorkout = {
+      ...generatedWorkout,
+      date: generatedWorkout.date?.toISOString() || new Date().toISOString(),
+    };
+    navigation.navigate('WorkoutSession', { workout: serializedWorkout });
   };
 
   return (
@@ -159,8 +184,8 @@ const WorkoutGeneratorScreen = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Entrenamiento Generado</Text>
           <Text style={styles.workoutInfo}>
-            {generatedWorkout.getTotalExercises()} ejercicios únicos •{' '}
-            {generatedWorkout.getTotalDurationMinutes()} minutos
+            {getTotalExercises(generatedWorkout)} ejercicios únicos •{' '}
+            {getTotalDurationMinutes(generatedWorkout)} minutos
           </Text>
 
           {generatedWorkout.blocks.map((block, blockIndex) => (
