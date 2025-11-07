@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Modal,
   Vibration,
+  Switch,
 } from 'react-native';
 import { AppTheme, CommonStyles } from '../theme/AppTheme';
 import Card from '../components/Card';
@@ -18,7 +19,7 @@ import { useApp } from '../context/AppContext';
 import { CustomAlert } from '../components/CustomAlert';
 
 const NewSettingsScreen = ({ navigation }) => {
-  const { config: globalConfig, updateConfig } = useApp();
+  const { config: globalConfig, updateConfig, settings, updateSettings } = useApp();
   const [config, setConfig] = useState(globalConfig);
 
   // Update local state when global config changes
@@ -206,6 +207,59 @@ const NewSettingsScreen = ({ navigation }) => {
             {config.rounds} rounds × {config.cycles} cycles
           </Text>
         </Card>
+
+        {/* Audio & Notifications */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Audio & Notificaciones</Text>
+
+          <Card>
+            <View style={styles.switchRow}>
+              <View style={styles.switchLeft}>
+                <Text style={styles.switchLabel}>Sonidos</Text>
+                <Text style={styles.switchDescription}>
+                  Reproducir sonidos durante entrenamientos
+                </Text>
+              </View>
+              <Switch
+                value={settings.soundEnabled}
+                onValueChange={(value) => {
+                  updateSettings({ soundEnabled: value });
+                  if (value) Vibration.vibrate(50);
+                }}
+                trackColor={{
+                  false: AppTheme.colors.backgroundCardLight,
+                  true: AppTheme.colors.primary + '50',
+                }}
+                thumbColor={settings.soundEnabled ? AppTheme.colors.primary : AppTheme.colors.textTertiary}
+                ios_backgroundColor={AppTheme.colors.backgroundCardLight}
+              />
+            </View>
+          </Card>
+
+          <Card style={styles.cardSpacing}>
+            <View style={styles.switchRow}>
+              <View style={styles.switchLeft}>
+                <Text style={styles.switchLabel}>Vibración</Text>
+                <Text style={styles.switchDescription}>
+                  Vibrar en transiciones de fase
+                </Text>
+              </View>
+              <Switch
+                value={settings.vibrationEnabled}
+                onValueChange={(value) => {
+                  updateSettings({ vibrationEnabled: value });
+                  if (value) Vibration.vibrate(50);
+                }}
+                trackColor={{
+                  false: AppTheme.colors.backgroundCardLight,
+                  true: AppTheme.colors.primary + '50',
+                }}
+                thumbColor={settings.vibrationEnabled ? AppTheme.colors.primary : AppTheme.colors.textTertiary}
+                ios_backgroundColor={AppTheme.colors.backgroundCardLight}
+              />
+            </View>
+          </Card>
+        </View>
 
         {/* Settings Groups */}
         {settingsGroups.map((group, groupIndex) => (
@@ -412,6 +466,26 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: AppTheme.spacing.xl,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  switchLeft: {
+    flex: 1,
+    marginRight: AppTheme.spacing.md,
+  },
+  switchLabel: {
+    fontSize: AppTheme.typography.fontSize.base,
+    fontWeight: AppTheme.typography.fontWeight.semiBold,
+    color: AppTheme.colors.text,
+    marginBottom: 4,
+  },
+  switchDescription: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
+    lineHeight: 18,
   },
   sectionTitle: {
     fontSize: AppTheme.typography.fontSize.lg,
