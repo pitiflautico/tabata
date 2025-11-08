@@ -1,31 +1,31 @@
 {
   "cli": {
-    "version": ">= 5.2.0",
-    "promptToConfigurePushNotifications": false
+    "version": ">= 5.2.0"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
-    "preview": {
-      "distribution": "internal",
-      "ios": {
-        "simulator": true
-      }
-    },
     "production": {
       "ios": {
+        "image": "latest",
+        "resourceClass": "m-medium",
         "distribution": "store"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "ios": {
+        "image": "latest",
+        "simulator": true
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "tu-email@example.com",
-        "ascAppId": "tu-app-id",
-        "appleTeamId": "tu-team-id"
+        "appleId": "pitiflautico3@gmail.com",
+        "ascAppId": "6755035151",
+        "appleTeamId": "6BS7LV4JR8"
       }
     }
   }

@@ -11,6 +11,7 @@ const CircularButton = ({
   onPress,
   style,
   disabled = false,
+  accessibilityLabel,
 }) => {
   const sizeMap = {
     small: 40,
@@ -32,6 +33,10 @@ const CircularButton = ({
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.7}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || `Button with ${icon} icon`}
+      accessibilityState={{ disabled }}
       style={[
         styles.button,
         {

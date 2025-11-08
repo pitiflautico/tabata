@@ -232,6 +232,29 @@ const NewExerciseCatalogScreen = ({ navigation }) => {
       <FlatList
         data={filteredExercises}
         ListHeaderComponent={renderHeader}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyState}>
+            <Ionicons name="search-outline" size={64} color={AppTheme.colors.textTertiary} />
+            <Text style={styles.emptyTitle}>No se encontraron ejercicios</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery || selectedType || selectedMuscleGroup
+                ? 'Intenta ajustar los filtros o la búsqueda'
+                : 'No hay ejercicios disponibles'}
+            </Text>
+            {(searchQuery || selectedType || selectedMuscleGroup) && (
+              <TouchableOpacity
+                style={styles.clearFiltersButton}
+                onPress={() => {
+                  setSearchQuery('');
+                  setSelectedType(null);
+                  setSelectedMuscleGroup(null);
+                }}
+              >
+                <Text style={styles.clearFiltersText}>Limpiar filtros</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
         renderItem={({ item }) => (
           <ExerciseCard
             exercise={item}
@@ -381,6 +404,35 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: AppTheme.layout.screenPadding,
     paddingBottom: 100,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: AppTheme.spacing.xxxl * 2,
+    paddingHorizontal: AppTheme.layout.screenPadding,
+  },
+  emptyTitle: {
+    fontSize: AppTheme.typography.fontSize.xl,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+    marginTop: AppTheme.spacing.lg,
+    marginBottom: AppTheme.spacing.sm,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: AppTheme.typography.fontSize.base,
+    color: AppTheme.colors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+    lineHeight: 22,
+  },
+  clearFiltersButton: {
+    marginTop: AppTheme.spacing.xl,
+    paddingHorizontal: AppTheme.spacing.xl,
+    paddingVertical: AppTheme.spacing.md,
+    backgroundColor: AppTheme.colors.backgroundCard,
+    borderRadius: AppTheme.borderRadius.lg,
   },
 });
 
