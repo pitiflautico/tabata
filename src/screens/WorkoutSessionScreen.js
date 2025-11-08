@@ -451,6 +451,7 @@ const WorkoutSessionScreen = ({ route, navigation }) => {
                   index < currentExerciseIndex && styles.exerciseItemTextComplete,
                 ]}
                 numberOfLines={1}
+                ellipsizeMode="tail"
               >
                 {ex.name}
               </Text>
@@ -508,8 +509,10 @@ const styles = StyleSheet.create({
   timerContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: AppTheme.spacing.xl,
+    justifyContent: 'flex-start',
+    paddingTop: AppTheme.spacing.lg,
+    paddingBottom: AppTheme.spacing.md,
+    minHeight: 400,
   },
   phaseLabel: {
     fontSize: AppTheme.typography.fontSize.xl,
@@ -530,8 +533,9 @@ const styles = StyleSheet.create({
   },
   exerciseInfo: {
     alignItems: 'center',
-    marginTop: AppTheme.spacing.xl,
+    marginTop: AppTheme.spacing.lg,
     paddingHorizontal: AppTheme.layout.screenPadding,
+    maxWidth: '100%',
   },
   nextLabel: {
     fontSize: AppTheme.typography.fontSize.sm,
@@ -581,6 +585,8 @@ const styles = StyleSheet.create({
     backgroundColor: AppTheme.colors.backgroundCard,
     borderTopLeftRadius: AppTheme.borderRadius.xl,
     borderTopRightRadius: AppTheme.borderRadius.xl,
+    borderTopWidth: 2,
+    borderTopColor: AppTheme.colors.primary + '30',
     paddingHorizontal: AppTheme.layout.screenPadding,
     paddingTop: AppTheme.spacing.lg,
     paddingBottom: AppTheme.spacing.xl,

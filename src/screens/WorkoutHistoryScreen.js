@@ -1,375 +1,544 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity
+  StatusBar,
+  Platform,
+  TouchableOpacity,
 } from 'react-native';
-import ProgressService from '../services/ProgressService';
+import { Ionicons } from '@expo/vector-icons';
+import { AppTheme, CommonStyles } from '../theme/AppTheme';
+import { useApp } from '../context/AppContext';
+import CircularButton from '../components/CircularButton';
+import Card from '../components/Card';
 
 /**
  * Pantalla de historial de entrenamientos
+ * Muestra el registro diario y semanal de ejercicios completados
  */
 const WorkoutHistoryScreen = ({ navigation }) => {
-  const [history, setHistory] = useState([]);
-  const [filter, setFilter] = useState('all'); // all, week, month
+  const { workoutHistory } = useApp();
+  const [viewMode, setViewMode] = useState('daily'); // 'daily' | 'weekly'
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
+  // Agrupar entrenamientos por fecha
+  const groupWorkoutsByDate = () => {
+    const grouped = {};
 
-  const loadHistory = () => {
-    const progress = ProgressService.getCurrentProgress();
-    setHistory(progress.performanceHistory || []);
+    workoutHistory.forEach(workout => {
+      const date = new Date(workout.date);
+      const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(workout);
+    });
+
+    return grouped;
   };
 
-  const getFilteredHistory = () => {
-    const now = new Date();
+  // Agrupar entrenamientos por semana
+  const groupWorkoutsByWeek = () => {
+    const grouped = {};
 
-    if (filter === 'week') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      return history.filter(item => new Date(item.date) >= weekAgo);
-    }
+    workoutHistory.forEach(workout => {
+      const date = new Date(workout.date);
+      const weekStart = getWeekStart(date);
+      const weekKey = weekStart.toISOString().split('T')[0];
 
-    if (filter === 'month') {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      return history.filter(item => new Date(item.date) >= monthAgo);
-    }
+      if (!grouped[weekKey]) {
+        grouped[weekKey] = {
+          weekStart,
+          workouts: [],
+          totalDuration: 0,
+          totalCalories: 0,
+        };
+      }
 
-    return history;
+      grouped[weekKey].workouts.push(workout);
+      grouped[weekKey].totalDuration += workout.duration || 0;
+      grouped[weekKey].totalCalories += workout.calories || 0;
+    });
+
+    return grouped;
   };
 
-  const filteredHistory = getFilteredHistory();
+  // Obtener inicio de la semana (lunes)
+  const getWeekStart = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajustar al lunes
+    return new Date(d.setDate(diff));
+  };
 
+  // Formatear fecha
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const isToday = date.toDateString() === today.toDateString();
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    if (isToday) return 'Hoy';
+    if (isYesterday) return 'Ayer';
+
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
     return date.toLocaleDateString('es-ES', options);
   };
 
-  const formatTime = (minutes) => {
-    return `${minutes} min`;
+  // Formatear rango de semana
+  const formatWeekRange = (weekStart) => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    const startStr = weekStart.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    const endStr = weekEnd.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
+    return `${startStr} - ${endStr}`;
   };
 
-  const getEffortEmoji = (effort) => {
-    const emojis = ['😊', '🙂', '😐', '😅', '😰'];
-    return emojis[effort - 1] || '😐';
+  // Renderizar vista diaria
+  const renderDailyView = () => {
+    const groupedWorkouts = groupWorkoutsByDate();
+    const dates = Object.keys(groupedWorkouts).sort().reverse();
+
+    if (dates.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="calendar-outline" size={64} color={AppTheme.colors.textTertiary} />
+          <Text style={styles.emptyTitle}>Sin entrenamientos aún</Text>
+          <Text style={styles.emptyText}>
+            Completa tu primer entrenamiento para ver tu historial aquí
+          </Text>
+        </View>
+      );
+    }
+
+    return dates.map(dateKey => {
+      const workouts = groupedWorkouts[dateKey];
+      const totalDuration = workouts.reduce((sum, w) => sum + (w.duration || 0), 0);
+      const totalCalories = workouts.reduce((sum, w) => sum + (w.calories || 0), 0);
+
+      return (
+        <Card key={dateKey} style={styles.dateCard}>
+          <View style={styles.dateHeader}>
+            <View>
+              <Text style={styles.dateTitle}>{formatDate(dateKey)}</Text>
+              <Text style={styles.dateSubtitle}>
+                {workouts.length} entrenamiento{workouts.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+            <View style={styles.dateSummary}>
+              <View style={styles.summaryItem}>
+                <Ionicons name="time-outline" size={16} color={AppTheme.colors.primary} />
+                <Text style={styles.summaryValue}>{totalDuration} min</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Ionicons name="flame-outline" size={16} color={AppTheme.colors.accent1} />
+                <Text style={styles.summaryValue}>{totalCalories} kcal</Text>
+              </View>
+            </View>
+          </View>
+
+          {workouts.map((workout, index) => (
+            <View key={index} style={styles.workoutItem}>
+              <View style={styles.workoutIcon}>
+                <Ionicons name="fitness" size={20} color={AppTheme.colors.primary} />
+              </View>
+              <View style={styles.workoutInfo}>
+                <Text style={styles.workoutName}>
+                  {workout.blocks?.length || 0} bloques • {workout.cycles || 0} ejercicios
+                </Text>
+                <Text style={styles.workoutTime}>
+                  {new Date(workout.date).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </Text>
+              </View>
+              <View style={styles.workoutStats}>
+                <Text style={styles.workoutDuration}>{workout.duration} min</Text>
+                <Text style={styles.workoutCalories}>{workout.calories} kcal</Text>
+              </View>
+            </View>
+          ))}
+        </Card>
+      );
+    });
   };
 
-  const getEffortLabel = (effort) => {
-    const labels = ['Muy Fácil', 'Fácil', 'Moderado', 'Difícil', 'Muy Difícil'];
-    return labels[effort - 1] || 'Moderado';
-  };
+  // Renderizar vista semanal
+  const renderWeeklyView = () => {
+    const groupedWorkouts = groupWorkoutsByWeek();
+    const weeks = Object.keys(groupedWorkouts).sort().reverse();
 
-  const totalStats = {
-    workouts: filteredHistory.length,
-    totalMinutes: filteredHistory.reduce((sum, item) => sum + item.duration, 0),
-    totalCalories: filteredHistory.reduce((sum, item) => sum + item.caloriesBurned, 0),
-    avgEffort: filteredHistory.length > 0
-      ? (filteredHistory.reduce((sum, item) => sum + item.perceivedEffort, 0) / filteredHistory.length).toFixed(1)
-      : 0
+    if (weeks.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="calendar-outline" size={64} color={AppTheme.colors.textTertiary} />
+          <Text style={styles.emptyTitle}>Sin entrenamientos aún</Text>
+          <Text style={styles.emptyText}>
+            Completa tu primer entrenamiento para ver tu historial aquí
+          </Text>
+        </View>
+      );
+    }
+
+    return weeks.map(weekKey => {
+      const weekData = groupedWorkouts[weekKey];
+
+      return (
+        <Card key={weekKey} style={styles.weekCard}>
+          <View style={styles.weekHeader}>
+            <View>
+              <Text style={styles.weekTitle}>{formatWeekRange(weekData.weekStart)}</Text>
+              <Text style={styles.weekSubtitle}>
+                {weekData.workouts.length} entrenamiento{weekData.workouts.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.weekStats}>
+            <View style={styles.weekStatItem}>
+              <Ionicons name="time" size={32} color={AppTheme.colors.primary} />
+              <Text style={styles.weekStatValue}>{weekData.totalDuration}</Text>
+              <Text style={styles.weekStatLabel}>minutos</Text>
+            </View>
+            <View style={styles.weekStatDivider} />
+            <View style={styles.weekStatItem}>
+              <Ionicons name="flame" size={32} color={AppTheme.colors.accent1} />
+              <Text style={styles.weekStatValue}>{weekData.totalCalories}</Text>
+              <Text style={styles.weekStatLabel}>kcal</Text>
+            </View>
+            <View style={styles.weekStatDivider} />
+            <View style={styles.weekStatItem}>
+              <Ionicons name="fitness" size={32} color={AppTheme.colors.success} />
+              <Text style={styles.weekStatValue}>{weekData.workouts.length}</Text>
+              <Text style={styles.weekStatLabel}>sesiones</Text>
+            </View>
+          </View>
+
+          <View style={styles.weekDays}>
+            {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day, index) => {
+              const dayDate = new Date(weekData.weekStart);
+              dayDate.setDate(dayDate.getDate() + index);
+              const dayKey = dayDate.toISOString().split('T')[0];
+              const hasWorkout = weekData.workouts.some(w => {
+                const wDate = new Date(w.date).toISOString().split('T')[0];
+                return wDate === dayKey;
+              });
+
+              return (
+                <View key={index} style={[styles.weekDay, hasWorkout && styles.weekDayActive]}>
+                  <Text style={[styles.weekDayText, hasWorkout && styles.weekDayTextActive]}>
+                    {day}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </Card>
+      );
+    });
   };
 
   return (
-    <View style={styles.container}>
+    <View style={CommonStyles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Historial</Text>
-        <Text style={styles.headerSubtitle}>
-          Tus entrenamientos completados
-        </Text>
+        <CircularButton
+          icon="arrow-back"
+          size="medium"
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Volver atrás"
+        />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Historial</Text>
+          <Text style={styles.headerSubtitle}>
+            {workoutHistory.length} entrenamiento{workoutHistory.length !== 1 ? 's' : ''}
+          </Text>
+        </View>
+        <CircularButton
+          icon="stats-chart"
+          size="medium"
+          onPress={() => navigation.navigate('Stats')}
+          accessibilityLabel="Ver estadísticas"
+        />
       </View>
 
-      {/* Filtros */}
-      <View style={styles.filterContainer}>
+      {/* View Mode Selector */}
+      <View style={styles.viewModeSelector}>
         <TouchableOpacity
-          style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
-          onPress={() => setFilter('all')}
+          style={[styles.viewModeButton, viewMode === 'daily' && styles.viewModeButtonActive]}
+          onPress={() => setViewMode('daily')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-            Todos
+          <Ionicons
+            name="calendar"
+            size={20}
+            color={viewMode === 'daily' ? AppTheme.colors.background : AppTheme.colors.textSecondary}
+          />
+          <Text style={[styles.viewModeText, viewMode === 'daily' && styles.viewModeTextActive]}>
+            Diario
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterButton, filter === 'week' && styles.filterButtonActive]}
-          onPress={() => setFilter('week')}
+          style={[styles.viewModeButton, viewMode === 'weekly' && styles.viewModeButtonActive]}
+          onPress={() => setViewMode('weekly')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.filterText, filter === 'week' && styles.filterTextActive]}>
-            Esta semana
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'month' && styles.filterButtonActive]}
-          onPress={() => setFilter('month')}
-        >
-          <Text style={[styles.filterText, filter === 'month' && styles.filterTextActive]}>
-            Este mes
+          <Ionicons
+            name="calendar-outline"
+            size={20}
+            color={viewMode === 'weekly' ? AppTheme.colors.background : AppTheme.colors.textSecondary}
+          />
+          <Text style={[styles.viewModeText, viewMode === 'weekly' && styles.viewModeTextActive]}>
+            Semanal
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Estadísticas resumidas */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{totalStats.workouts}</Text>
-          <Text style={styles.statLabel}>Entrenamientos</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{totalStats.totalMinutes}</Text>
-          <Text style={styles.statLabel}>Minutos</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{totalStats.totalCalories}</Text>
-          <Text style={styles.statLabel}>Calorías</Text>
-        </View>
-      </View>
-
-      {/* Lista de entrenamientos */}
-      <ScrollView style={styles.historyList}>
-        {filteredHistory.length > 0 ? (
-          filteredHistory.reverse().map((item, index) => (
-            <View key={item.id || index} style={styles.historyCard}>
-              <View style={styles.historyHeader}>
-                <View>
-                  <Text style={styles.historyDate}>
-                    {formatDate(item.date)}
-                  </Text>
-                  <Text style={styles.historyId}>
-                    Workout #{filteredHistory.length - index}
-                  </Text>
-                </View>
-                <View style={styles.effortBadge}>
-                  <Text style={styles.effortEmoji}>
-                    {getEffortEmoji(item.perceivedEffort)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.historyStats}>
-                <View style={styles.historyStat}>
-                  <Text style={styles.historyStatLabel}>Duración</Text>
-                  <Text style={styles.historyStatValue}>
-                    {formatTime(item.duration)}
-                  </Text>
-                </View>
-
-                <View style={styles.historyStat}>
-                  <Text style={styles.historyStatLabel}>Calorías</Text>
-                  <Text style={styles.historyStatValue}>
-                    {item.caloriesBurned}
-                  </Text>
-                </View>
-
-                <View style={styles.historyStat}>
-                  <Text style={styles.historyStatLabel}>Esfuerzo</Text>
-                  <Text style={styles.historyStatValue}>
-                    {getEffortLabel(item.perceivedEffort)}
-                  </Text>
-                </View>
-              </View>
-
-              {item.experienceGained && (
-                <View style={styles.xpBadge}>
-                  <Text style={styles.xpText}>
-                    +{item.experienceGained} XP
-                  </Text>
-                </View>
-              )}
-            </View>
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📊</Text>
-            <Text style={styles.emptyText}>
-              {filter === 'all'
-                ? 'Aún no has completado ningún entrenamiento'
-                : 'No hay entrenamientos en este período'}
-            </Text>
-            <TouchableOpacity
-              style={styles.emptyButton}
-              onPress={() => navigation.navigate('WorkoutGenerator')}
-            >
-              <Text style={styles.emptyButtonText}>
-                Comenzar Entrenamiento
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+      {/* Content */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {viewMode === 'daily' ? renderDailyView() : renderWeeklyView()}
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
   header: {
-    backgroundColor: '#1a1a2e',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-    paddingTop: 60,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: AppTheme.layout.screenPadding,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 16 : 50,
+    paddingBottom: AppTheme.spacing.lg,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
+    fontSize: AppTheme.typography.fontSize.lg,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#0f3460',
+    fontSize: AppTheme.typography.fontSize.xs,
+    color: AppTheme.colors.textSecondary,
+    marginTop: 2,
   },
-  filterContainer: {
+  viewModeSelector: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginHorizontal: AppTheme.layout.screenPadding,
+    marginBottom: AppTheme.spacing.lg,
+    backgroundColor: AppTheme.colors.backgroundCard,
+    borderRadius: AppTheme.borderRadius.md,
+    padding: 4,
   },
-  filterButton: {
+  viewModeButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    marginHorizontal: 4,
-    alignItems: 'center',
-  },
-  filterButtonActive: {
-    backgroundColor: '#0f3460',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  filterTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  statCard: {
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: AppTheme.spacing.sm,
+    borderRadius: AppTheme.borderRadius.sm,
+    gap: AppTheme.spacing.xs,
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0f3460',
-    marginBottom: 4,
+  viewModeButtonActive: {
+    backgroundColor: AppTheme.colors.primary,
   },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
+  viewModeText: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    fontWeight: AppTheme.typography.fontWeight.semiBold,
+    color: AppTheme.colors.textSecondary,
   },
-  historyList: {
+  viewModeTextActive: {
+    color: AppTheme.colors.background,
+  },
+  scrollView: {
     flex: 1,
-    padding: 16,
   },
-  historyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  scrollContent: {
+    paddingHorizontal: AppTheme.layout.screenPadding,
+    paddingBottom: AppTheme.spacing.xxl,
   },
-  historyHeader: {
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: AppTheme.spacing.xxxl * 2,
+  },
+  emptyTitle: {
+    fontSize: AppTheme.typography.fontSize.xl,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+    marginTop: AppTheme.spacing.lg,
+    marginBottom: AppTheme.spacing.sm,
+  },
+  emptyText: {
+    fontSize: AppTheme.typography.fontSize.base,
+    color: AppTheme.colors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  dateCard: {
+    marginBottom: AppTheme.spacing.md,
+  },
+  dateHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: AppTheme.spacing.md,
+    paddingBottom: AppTheme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: AppTheme.colors.backgroundCardLight,
   },
-  historyDate: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1a1a2e',
-    marginBottom: 4,
+  dateTitle: {
+    fontSize: AppTheme.typography.fontSize.lg,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+    textTransform: 'capitalize',
   },
-  historyId: {
-    fontSize: 12,
-    color: '#999',
+  dateSubtitle: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
+    marginTop: 2,
   },
-  effortBadge: {
+  dateSummary: {
+    gap: AppTheme.spacing.sm,
+  },
+  summaryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  summaryValue: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    fontWeight: AppTheme.typography.fontWeight.semiBold,
+    color: AppTheme.colors.text,
+  },
+  workoutItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: AppTheme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: AppTheme.colors.backgroundCardLight,
+  },
+  workoutIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
+    backgroundColor: AppTheme.colors.primary + '20',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: AppTheme.spacing.md,
   },
-  effortEmoji: {
-    fontSize: 24,
-  },
-  historyStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f5f5f5',
-  },
-  historyStat: {
+  workoutInfo: {
     flex: 1,
   },
-  historyStatLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
+  workoutName: {
+    fontSize: AppTheme.typography.fontSize.base,
+    fontWeight: AppTheme.typography.fontWeight.medium,
+    color: AppTheme.colors.text,
+    marginBottom: 2,
   },
-  historyStatValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+  workoutTime: {
+    fontSize: AppTheme.typography.fontSize.xs,
+    color: AppTheme.colors.textSecondary,
   },
-  xpBadge: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  workoutStats: {
+    alignItems: 'flex-end',
   },
-  xpText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+  workoutDuration: {
+    fontSize: AppTheme.typography.fontSize.base,
+    fontWeight: AppTheme.typography.fontWeight.semiBold,
+    color: AppTheme.colors.primary,
   },
-  emptyState: {
+  workoutCalories: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
+    marginTop: 2,
+  },
+  weekCard: {
+    marginBottom: AppTheme.spacing.md,
+  },
+  weekHeader: {
+    marginBottom: AppTheme.spacing.lg,
+  },
+  weekTitle: {
+    fontSize: AppTheme.typography.fontSize.lg,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+  },
+  weekSubtitle: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    color: AppTheme.colors.textSecondary,
+    marginTop: 2,
+  },
+  weekStats: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 60,
+    marginBottom: AppTheme.spacing.lg,
+    paddingVertical: AppTheme.spacing.md,
+    backgroundColor: AppTheme.colors.backgroundCardLight,
+    borderRadius: AppTheme.borderRadius.md,
   },
-  emptyEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+  weekStatItem: {
+    flex: 1,
+    alignItems: 'center',
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
+  weekStatValue: {
+    fontSize: AppTheme.typography.fontSize.xxl,
+    fontWeight: AppTheme.typography.fontWeight.bold,
+    color: AppTheme.colors.text,
+    marginTop: AppTheme.spacing.xs,
   },
-  emptyButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+  weekStatLabel: {
+    fontSize: AppTheme.typography.fontSize.xs,
+    color: AppTheme.colors.textSecondary,
+    marginTop: 2,
   },
-  emptyButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  weekStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: AppTheme.colors.backgroundCard,
+  },
+  weekDays: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: AppTheme.spacing.xs,
+  },
+  weekDay: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: AppTheme.borderRadius.sm,
+    backgroundColor: AppTheme.colors.backgroundCardLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekDayActive: {
+    backgroundColor: AppTheme.colors.primary,
+  },
+  weekDayText: {
+    fontSize: AppTheme.typography.fontSize.sm,
+    fontWeight: AppTheme.typography.fontWeight.semiBold,
+    color: AppTheme.colors.textTertiary,
+  },
+  weekDayTextActive: {
+    color: AppTheme.colors.background,
   },
 });
 

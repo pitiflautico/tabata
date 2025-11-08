@@ -4,30 +4,37 @@
     "slug": "tabata-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a1a2e"
+      "backgroundColor": "#0A0A0A"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.danielperez.tabata",
       "buildNumber": "1",
       "infoPlist": {
+        "UIBackgroundModes": [
+          "audio",
+          "audio"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1a1a2e"
-      }
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      },
+      "package": "com.tabataapp.tabata"
     },
     "web": {},
     "extra": {
       "eas": {
         "projectId": "719c72be-4655-470b-838c-cbd696e28992"
       }
-    },
-    "owner": "pitiflautico"
+    }
   }
 }
