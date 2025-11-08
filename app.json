@@ -5,22 +5,29 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#1a1a2e"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.danielperez.tabata",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "Esta app necesita acceso al micrófono para funciones de audio.",
+        "NSSpeechRecognitionUsageDescription": "Esta app usa síntesis de voz para anunciar ejercicios durante el entrenamiento."
       }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
-      }
+      },
+      "package": "com.danielperez.tabata"
     },
     "web": {},
     "extra": {
